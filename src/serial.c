@@ -140,8 +140,7 @@ const static uint8_t ansi_text_color_lut[64] =
 /*                             Global Variables                              */
 /*****************************************************************************/
 
-uint8_t					global_uart_in_buffer_storage[UART_BUFFER_SIZE];
-uint8_t*				global_uart_in_buffer = global_uart_in_buffer_storage;
+uint8_t*				global_uart_in_buffer = (uint8_t*)UART_BUFFER_START_ADDR;
 uint16_t				global_uart_write_idx;
 uint16_t				global_uart_read_idx;
 
@@ -925,8 +924,6 @@ void Serial_PrintByte(uint8_t the_byte)
 	}
 
 	// update cursor position in VICKY so flashing cursor shows where we are
-// 	(__A__ = *(uint8_t*)ZP_Y, asm("sta $d016"));
-// 	(__A__ = *(uint8_t*)ZP_X, asm("sta $d014"));
 	if (update_vicky_curs_pos == true)
 	{
 		Text_SetXY(serial_x, serial_y);
@@ -1092,7 +1089,7 @@ void Serial_InitUART(void)
 	
 	R8(UART_LCR) = UART_DATA_BITS | UART_STOP_BITS | UART_PARITY | UART_NO_BRK_SIG;
 	Serial_SetDLAB();
-	R16(UART_DLL) = UART_BAUD_DIV_4800;
+	R16(UART_DLL) = UART_BAUD_DIV_9600;
 	Serial_ClearDLAB();
 	R8(UART_MCR) = FLAG_UART_MCR_OUT2;
 	R8(UART_IER) = (FLAG_UART_IER_RXA | FLAG_UART_IER_ERR);	// enable interrupts on receive events
@@ -1195,10 +1192,14 @@ bool Serial_ProcessAvailableData(void)
 	}
 	else
 	{
-		while ( global_uart_read_idx != global_uart_write_idx)
+		while ( global_uart_read_idx != global_uart_write_idx )
 		{
 			Serial_ProcessByte(global_uart_in_buffer[global_uart_read_idx++]);
-			global_uart_read_idx %= UART_BUFFER_SIZE;
+			
+			if (global_uart_read_idx > UART_BUFFER_SIZE)
+			{
+				global_uart_read_idx = 0;
+			}
 		}
 	}
 	
@@ -1216,11 +1217,16 @@ int16_t Serial_GetByte(int32_t the_timeout)
 
 	for (iiii = 0; iiii < the_timeout; iiii++)
 	{
-		if (global_uart_read_idx != global_uart_write_idx)
+		if ( global_uart_read_idx != global_uart_write_idx )
 		{
 			// at least 1 byte available in buffer
 			the_byte = (int16_t)global_uart_in_buffer[global_uart_read_idx++];
-			global_uart_read_idx %= UART_BUFFER_SIZE;
+			
+			if (global_uart_read_idx > UART_BUFFER_SIZE)
+			{
+				global_uart_read_idx = 0;
+			}
+
 			break;
 		}		
 	}
@@ -1265,7 +1271,7 @@ bool Serial_DebugDump(void)
 	bool				success;
 	char*				the_name;
 	char				temp_path_buffer[32];
-	uint8_t*			the_buffer = global_uart_in_buffer_storage;
+	uint8_t*			the_buffer = (uint8_t*)UART_BUFFER_START_ADDR;
 	unsigned int		s_bytes_written_to_disk = 0;
 	FRESULT				the_result;
 	FIL					the_target_handle;

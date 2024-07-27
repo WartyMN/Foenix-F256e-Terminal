@@ -394,7 +394,7 @@ void App_Initialize(void)
 	// initialize serial port for terminal comms
 	Serial_InitUART();
 	Serial_InitANSIColors();
-	App_ChangeBaudRate(ACTION_SET_BAUD_4800 - ACTION_SET_BAUD_115200);
+	App_ChangeBaudRate(ACTION_SET_BAUD_9600 - ACTION_SET_BAUD_115200);
 	
 	Buffer_Clear();
 

@@ -19,6 +19,7 @@
 #include "comm_buffer.h"	// only needed if debugging// #include "memory.h"
 #include "debug.h"
 #include "keyboard.h"
+#include "memory.h"
 #include "serial.h"
 // #include "text.h"
 
@@ -1205,6 +1206,8 @@ __attribute__((interrupt(0xffee))) void irq_handler()
 			
 				if ( (pending_int_value & JR0_INT00_SOF) != 0)
 				{
+					//R8(VICKY_TEXT_CHAR_RAM + 161) = R8(VICKY_TEXT_CHAR_RAM + 161) + 1; 
+					
 					// clear pending flag before doing any work
 					R8(INT_PENDING_REG0) = pending_int_value;
 	
@@ -1254,10 +1257,14 @@ __attribute__((interrupt(0xffee))) void irq_handler()
 			}
 			else
 			{
-				while ( (R8(UART_LSR) & UART_DATA_AVAILABLE) > 0)
+				while ( (R8(UART_LSR) & UART_DATA_AVAILABLE) != 0)
 				{
 					global_uart_in_buffer[global_uart_write_idx++] = R8(UART_BASE);
-					global_uart_write_idx %= UART_BUFFER_SIZE;
+					
+					if (global_uart_write_idx > UART_BUFFER_SIZE)
+					{
+						global_uart_write_idx = 0;
+					}
 				}
 			}
 		}

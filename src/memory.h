@@ -37,26 +37,9 @@
 #define PARAM_FOR_ATTR_MEM	true	// param for functions updating VICKY screen memory: make it affect color/attribute memory
 #define PARAM_FOR_CHAR_MEM	false	// param for functions updating VICKY screen memory: make it affect character memory
 
-#define ZP_TO_ADDR			0x00					// zero-page address holding address to copy to, for ML copy routine (3b)
-#define ZP_FROM_ADDR		(ZP_TO_ADDR + 3)		// zero-page address holding address to copy from, for ML copy routine (3b)
-#define ZP_COPY_LEN			(ZP_FROM_ADDR + 3)		// zero-page address holding number of bytes to copy, for ML copy routine (3b)
-#define ZP_PHYS_ADDR_LO		(ZP_COPY_LEN + 3)		// zero-page address pointing to a 20-bit physical memory address
-#define ZP_PHYS_ADDR_MI		(ZP_PHYS_ADDR_LO + 1)	// zero-page address pointing to a 20-bit physical memory address
-#define ZP_PHYS_ADDR_HI		(ZP_PHYS_ADDR_MI + 1)	// zero-page address pointing to a 20-bit physical memory address
-#define ZP_CPU_ADDR_LO		(ZP_PHYS_ADDR_HI + 1)	// zero-page address pointing to a 16-bit address in 6502 memory space (virtual 64k)
-#define ZP_CPU_ADDR_HI		(ZP_CPU_ADDR_LO + 1)	// zero-page address pointing to a 16-bit address in 6502 memory space (virtual 64k)
-#define ZP_SEARCH_LOC_BYTE	(ZP_CPU_ADDR_HI + 1)	// zero-page address holding the current search location's byte offset within the page being searched
-#define ZP_SEARCH_LOC_PAGE	(ZP_SEARCH_LOC_BYTE + 1)	// zero-page address holding the current search location's page number within the bank being searched
-#define ZP_SEARCH_LOC_BANK	(ZP_SEARCH_LOC_PAGE + 1)	// zero-page address holding the current search location's bank number
-#define ZP_WIDTH_LO			(ZP_SEARCH_LOC_BANK + 1)	// zero-page address used to specify 2-byte hi/low values for width
-#define ZP_WIDTH_HI			(ZP_WIDTH_LO + 1)		// zero-page address used to specify 2-byte hi/low values for width
-#define ZP_HEIGHT_LO		(ZP_WIDTH_HI + 1)		// zero-page address used to specify 2-byte hi/low values for height
-#define ZP_HEIGHT_HI		(ZP_HEIGHT_LO + 1)		// zero-page address used to specify 2-byte hi/low values for height
-#define ZP_SRC_STRIDE_LO	(ZP_HEIGHT_HI + 1)		// zero-page address used to specify 2-byte hi/low values for DMA source stride
-#define ZP_SRC_STRIDE_HI	(ZP_SRC_STRIDE_LO + 1)	// zero-page address used to specify 2-byte hi/low values for DMA source stride
-#define ZP_DST_STRIDE_LO	(ZP_SRC_STRIDE_HI + 1)	// zero-page address used to specify 2-byte hi/low values for DMA destination stride
-#define ZP_DST_STRIDE_HI	(ZP_DST_STRIDE_LO + 1)	// zero-page address used to specify 2-byte hi/low values for DMA destination stride
-#define ZP_TEMP_1			(ZP_DST_STRIDE_HI + 1)	// zero-page address we will use for temp variable storage in assembly routines
+#define ZP_UART_WRITE_IDX	0x00					// zero-page address holding 2-byte index to UART circular buffer's WRITE head
+#define ZP_UART_READ_IDX	(ZP_UART_WRITE_IDX + 2)	// zero-page address holding 2-byte index to UART circular buffer's READ head
+#define ZP_TEMP_1			(ZP_UART_READ_IDX + 2)	// zero-page address we will use for temp variable storage in assembly routines
 #define ZP_OTHER_PARAM		(ZP_TEMP_1 + 1)			// zero-page address we will use for communicating 1 byte to/from assembly routines
 #define ZP_X				(ZP_OTHER_PARAM + 1)	// zero-page address (2 bytes) we will use for passing X coordinate to assembly routines)
 #define ZP_Y				(ZP_X + 2)				// zero-page address (2 bytes)we will use for passing Y coordinate to assembly routines
@@ -68,15 +51,10 @@
 #define VRAM_END_ADDR						0x52c00		// preprocess math is apparently 16 bit not 24 bit (VRAM_START_ADDR + VRAM_SIZE)	// more than one bank is used!
 #define VRAM_PREVIEW_IMG_START_ADDR			0x428bc		// (VRAM_START_ADDR + (320*32 + 188 = 10428)
 
-#define EM_STORAGE_START_ADDR				0x60000		// when copying file data to EM, the starting physical address (20 bit)
-#define EM_STORAGE_END_ADDR					0x7FFFF		// 0x080000 is start of Flash memory
-#define EM_STORAGE_SIZE						(EM_STORAGE_END_ADDR - EM_STORAGE_START_ADDR)	// 128k is max size we can handle with this memory layout
-
-#define MULTIPURPOSE_TEMP_START_ADDR		(VRAM_END_ADDR + 1)		// temp area using 53K between end of VRAM and start main storage
-#define MULTIPURPOSE_TEMP_END_ADDR			(EM_STORAGE_START_ADDR - MULTIPURPOSE_TEMP_START_ADDR)	// bounded by main em storage
-#define MULTIPURPOSE_TEMP_SIZE				(MULTIPURPOSE_TEMP_END_ADDR - MULTIPURPOSE_TEMP_START_ADDR)	// 54272 bytes = 53k
-
-#define EM_NOT_A_BANK_NUM					0xFF		// a fake bank number to use when calling a function that looks either directly at a specific memory bank, or a fixed location that holds a pre-read-in file/etc.
+#define UART_BUFFER_START_ADDR				0x7E000		// hard-coded address of UART buffer. See f256-term.scm. 
+#define UART_BUFFER_END_ADDR				0x7FFFF		// 
+#define UART_BUFFER_SIZE					((UART_BUFFER_END_ADDR - UART_BUFFER_START_ADDR) + 1)	// 8k
+#define UART_BUFFER_MASK					(UART_BUFFER_SIZE - 1)
 
 
 /*****************************************************************************/
@@ -141,6 +119,8 @@
 	// in other words, no need to page either dst or src into CPU space
 	void Memory_CopyRectWithDMA(void);
 #endif
+
+//void Memory_ReadFromUART(void);
 
 
 #endif /* MEMORY_H_ */

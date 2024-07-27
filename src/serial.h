@@ -50,7 +50,8 @@
 
 #define NUM_ANSI_CODES			19
 
-#define UART_BUFFER_SIZE		8192	// size of the circular buffer offloading serial data
+//#define UART_BUFFER_SIZE		8192	// size of the circular buffer offloading serial data
+//#define UART_BUFFER_MASK		(UART_BUFFER_SIZE - 1)
 
 // ANSI color codes
 #define ANSI_COLOR_BLACK			(uint8_t)0x00

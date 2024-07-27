@@ -33,8 +33,8 @@ C_SRCS = app.c bitmap.c comm_buffer.c debug.c dma.c event.c general.c kernel.c k
 MODEL = --code-model=large --data-model=medium
 LIB_MODEL = lc-md
 
-#FOENIX_LINKER_RULES = linker-files/f256k2-kernel_and_friends.scm
-FOENIX_LINKER_RULES = linker-files/f256-plain.scm
+#FOENIX_LINKER_RULES = linker-files/f256-plain.scm
+FOENIX_LINKER_RULES = linker-files/f256-term.scm
 
 # Object files
 OBJS = $(ASM_SRCS:%.s=obj/%.o) $(C_SRCS:%.c=obj/%.o)

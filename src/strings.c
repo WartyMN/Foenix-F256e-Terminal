@@ -37,10 +37,10 @@ char* global_string[NUM_STRINGS]= {
      (char*)"1200 baud: Volksmodem unlocked!",
      (char*)"2400 baud and flying!",
      (char*)"Trueish fact: Nobody ever advertised a 3600 baud modem.",
-     (char*)"4800 baud is 16 times faster than a VIC modem.",
-     (char*)"9600 baud is to 8-bits what 88 mph is to a Delorean: attainable but only just.",
-     (char*)"19200 baud... Hope that's a 68000 in your pocket.",
-     (char*)"38400 baud. I think you overestimate your skilz.",
+     (char*)"4800 baud. That's 16 times faster than a VIC modem!",
+     (char*)"9600 baud. Bit of a sweet spot between speed and reliability.",
+     (char*)"19200 baud. All hands stand by to reduce sail.",
+     (char*)"38400 baud? Hope that's a 68000 in your pocket.",
      (char*)"57600 baud. US Robotics for the win!",
      (char*)"115200 baud. I think you overestimate my skilz.",
      (char*)"   300",
@@ -65,6 +65,7 @@ char* global_string[NUM_STRINGS]= {
      (char*)"F256K2",
      (char*)"<unknown hardware>",
 };
+
 
 
 

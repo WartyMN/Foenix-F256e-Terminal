@@ -25,34 +25,39 @@
 ;	.public _Memory_CopyWithDMA
 ;	.public _Memory_FillWithDMA
 ;	.public _Memory_DebugOut
+;	.public Memory_ReadFromUART
 
 ; ZP_LK exports:
 
 ;	.exportzp	zp_bank_slot
 ;	.exportzp	zp_bank_num
 ;	.exportzp	zp_old_bank_num
-	.public		zp_to_addr
-	.public		zp_from_addr
-	.public		zp_copy_len
+;	.public		zp_to_addr
+;	.public		zp_from_addr
+;	.public		zp_copy_len
 ;	.exportzp	zp_x
 ;	.exportzp	zp_y
 ;	.exportzp	zp_screen_id
-	.public		zp_phys_addr_lo
-	.public		zp_phys_addr_med
-	.public		zp_phys_addr_hi
-	.public		zp_cpu_addr_lo
-	.public		zp_cpu_addr_hi
+;	.public		zp_phys_addr_lo
+;	.public		zp_phys_addr_med
+;	.public		zp_phys_addr_hi
+;	.public		zp_cpu_addr_lo
+;	.public		zp_cpu_addr_hi
 ;	.public		zp_search_loc_byte
 ;	.public		zp_search_loc_page
 ;	.public		zp_search_loc_bank
-	.public		zp_width_lo
-	.public		zp_width_hi
-	.public		zp_height_lo
-	.public		zp_height_hi
-	.public		zp_src_stride_lo
-	.public		zp_src_stride_hi
-	.public		zp_dst_stride_lo
-	.public		zp_dst_stride_hi
+;	.public		zp_width_lo
+;	.public		zp_width_hi
+;	.public		zp_height_lo
+;	.public		zp_height_hi
+;	.public		zp_src_stride_lo
+;	.public		zp_src_stride_hi
+;	.public		zp_dst_stride_lo
+;	.public		zp_dst_stride_hi
+
+	.public		ZP_UART_WRITE_IDX
+	.public		ZP_UART_READ_IDX
+	
 	.public		zp_temp_1
 	.public		zp_other_byte
 
@@ -78,108 +83,56 @@ DMA_HEIGHT			.equlab	0xf01f0e	; Height of 2D operation - 16 bits - only availabl
 DMA_SRC_STRIDE		.equlab	0xf01f10	; Source stride for 2D operation - 16 bits - only available when 2D COPY is set
 DMA_DST_STRIDE		.equlab	0xf01f12	; Destination stride for 2D operation - 16 bits - only available when 2D is set
 
+; UART buffer related
 
-; -- ZEROPAGE_LK starts at $10
+UART_BUFFER_SIZE	.equ 0x2000
+UART_BUFFER			.equ 0x07e000
+UART_BUFFER_MASK	.equ (UART_BUFFER_SIZE - 1)
+
 
 	.section ztiny,bss
-zp_to_addr:				.space 3	; $0
-zp_from_addr:			.space 3
-zp_copy_len:			.space 3
-zp_phys_addr_lo:		.space 1
-zp_phys_addr_med:		.space 1
-zp_phys_addr_hi:		.space 1
-zp_cpu_addr_lo:			.space 1
-zp_cpu_addr_hi:			.space 1	
-zp_search_loc_byte:		.space 1
-zp_search_loc_page:		.space 1
-zp_search_loc_bank:		.space 1	; $10
-zp_width_lo:			.space 1
-zp_width_hi:			.space 1
-zp_height_lo:			.space 1
-zp_height_hi:			.space 1
-zp_src_stride_lo:		.space 1
-zp_src_stride_hi:		.space 1
-zp_dst_stride_lo:		.space 1
-zp_dst_stride_hi:		.space 1
+
+ZP_UART_WRITE_IDX:		.space 2	; $0
+ZP_UART_READ_IDX:		.space 2
+
 zp_temp_1:				.space 1
 zp_other_byte:			.space 1
 zp_x:					.space 2
 zp_y:					.space 2	; $d and $e
 
 	
-	.section farcode, text
+	.section code, text
 	
 
 
-
-; ---------------------------------------------------------------
-; void __fastcall__ Memory_DebugOut(void)
-; ---------------------------------------------------------------
-;// call to a routine in memory.asm that writes an illegal opcode followed by address of debug buffer
-;// that is a simple to the f256jr emulator to write the string at the debug buffer out to the console
-
-;.segment	"CODE"
+;Memory_ReadFromUART:
 ;
-;.proc	_Memory_DebugOut: near
-;
-;.segment	"CODE"
-;
-;	.byte $FC				; illegal opcode that to Paul's JR emulator means "next 2 bytes are address of a string I should write to console"
-;	.byte $00;
-;	.byte $03;				; we're using $0300 hard coded as a location for the moment.
-;
-;	RTS
-;
-;.endproc
-
-
-
-
-; ---------------------------------------------------------------
-; void __fastcall__ Memory_Copy(void)
-; ---------------------------------------------------------------
-;// call to a routine in memory.asm that copies specified number of bytes from src to dst
-;// set zp_to_addr, zp_from_addr, zp_copy_len before calling.
-;// credit: http://6502.org/source/general/memory_move.html
-
-
-;.segment	"OVERLAY_NOTICE_BOARD"
-;
-;.proc	_Memory_Copy: near
-;
-;.segment	"OVERLAY_NOTICE_BOARD"
-;
-;MOVEUP:  LDX _zp_copy_len		; the last byte must be moved first
-;         CLC         			; start at the final pages of FROM and TO
-;         TXA
-;         ADC _zp_from_addr+1
-;         STA _zp_from_addr+1
-;         CLC
-;         TXA
-;         ADC _zp_to_addr+1
-;         STA _zp_to_addr+1
-;         INX         			; allows the use of BNE after the DEX below
-;         LDY _zp_copy_len+1
-;         BEQ MU3
-;         DEY          			; move bytes on the last page first
-;         BEQ MU2
-;MU1:     LDA (_zp_from_addr),Y
-;         STA (_zp_to_addr),Y
-;         DEY
-;         BNE MU1
-;MU2:     LDA (_zp_from_addr),Y 	; handle Y = 0 separately
-;         STA (_zp_to_addr),Y
-;MU3:     DEY
-;         DEC _zp_from_addr+1   	; move the next page (if any)
-;         DEC _zp_to_addr+1
-;         DEX
-;         BNE MU1
-;         RTS
-;
-;.endproc
-
-
-
+;			; check if a byte available
+;loop:
+;			SEP     #20				; make A 8 bits long to match UART registers
+;			REP		#10				; make X 16 bits long
+;			LDA     long:0xf01635
+;			AND		##1
+;			BCS		done
+;		
+;			LDX 	ZP_UART_WRITE_IDX
+;			LDA		long:0xf01630
+;			STA		long:UART_BUFFER, x
+;			
+;			; advance write pointer and reset to 0 when it reaches end of buffer
+;			INC		ZP_UART_WRITE_IDX
+;			INX
+;			CPX		##UART_BUFFER_SIZE
+;			BNE		loop
+;			STZ		ZP_UART_WRITE_IDX
+;			LDX		##0
+;			BRA		loop
+;			
+;done:
+;			REP     #20				; make A 16 bits long again.
+;			rts
+			
+	.section farcode, text
 
 ; ---------------------------------------------------------------
 ; void __fastcall__ Memory_CopyRectWithDMA(void)
