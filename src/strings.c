@@ -4,6 +4,8 @@
 char* global_string[NUM_STRINGS]= {
      (char*)"Are you sure you want to exit?",
      (char*)"Are you sure?",
+     (char*)"Set Current Date & Time",
+     (char*)"Enter date and time as 'YY-MM-DD HH:mm'",
      (char*)"Enter name for this file:",
      (char*)"Baud",
      (char*)"Select baud",
@@ -65,6 +67,7 @@ char* global_string[NUM_STRINGS]= {
      (char*)"F256K2",
      (char*)"<unknown hardware>",
 };
+
 
 
 

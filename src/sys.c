@@ -420,6 +420,9 @@ bool Sys_InitSystem(void)
 	
 	//DEBUG_OUT(("%s %d: Hardware detected. Running Autoconfigure...", __func__, __LINE__));
 	
+	// set the default cursor character to a full block. 
+	R8(VICKY_TEXT_CURSOR_CHAR) = 7;	// 18=light 4x4 grid char, 181=medium box; 227=empty box; 7=filled space=CH_HFILL_UP_8
+	
 	if (Sys_AutoConfigure() == false)
 	{
 		LOG_ERR(("%s %d: Auto configure failed", __func__, __LINE__));
@@ -790,8 +793,6 @@ void Sys_EnableTextModeCursor(bool enable_it)
 	the_cursor_mode_bits  = (the_cursor_mode_bits & ~CURSOR_FLASH_RATE_BITS) | CURSOR_FLASH_RATE_1S;	// always use 1 blink per 1 sec rate
 	
 	R8(VICKY_TEXT_CURSOR_ENABLE) = the_cursor_mode_bits;
-	
-	R8(VICKY_TEXT_CURSOR_CHAR) = 7;	// 18=light 4x4 grid char, 181=medium box; 227=empty box; 7=filled space=CH_HFILL_UP_8
 	
 	//DEBUG_OUT(("%s %d: cursor enabled now=%u", __func__, __LINE__, enable_it));
 	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_GAMMA_CTRL_REG)));

@@ -19,6 +19,7 @@
 #include "text.h"
 
 #include "app.h"
+#include "comm_buffer.h"
 #include "debug.h"
 #include "general.h"
 #include "keyboard.h"
@@ -827,7 +828,7 @@ bool Text_SetChar(uint8_t the_char)
 	text_x++;
 	
 	// bounds check. would be nicer to JSR to this but that's expensive in C, so just copying this everywhere...
-	if (text_x > SCREEN_LAST_COL)
+	if (text_x > SCREEN_LAST_COL && text_y < SCREEN_LAST_ROW)
 	{
 		text_x = 0;
 		text_y++;
@@ -855,7 +856,7 @@ bool Text_SetAttr(uint8_t the_attribute_value)
 	text_x++;
 	
 	// bounds check. would be nicer to JSR to this but that's expensive in C, so just copying this everywhere...
-	if (text_x > SCREEN_LAST_COL)
+	if (text_x > SCREEN_LAST_COL && text_y < SCREEN_LAST_ROW)
 	{
 		text_x = 0;
 		text_y++;
@@ -916,7 +917,7 @@ bool Text_SetCharAndColor(uint8_t the_char, uint8_t fore_color, uint8_t back_col
 	text_x++;
 	
 	// bounds check. would be nicer to JSR to this but that's expensive in C, so just copying this everywhere...
-	if (text_x > SCREEN_LAST_COL)
+	if (text_x > SCREEN_LAST_COL && text_y < SCREEN_LAST_ROW)
 	{
 		text_x = 0;
 		text_y++;
@@ -1108,7 +1109,7 @@ void Text_DrawBoxCoordsFancy(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uin
 	text_x++;
 	
 	// bounds check. would be nicer to JSR to this but that's expensive in C, so just copying this everywhere...
-	if (text_x > SCREEN_LAST_COL)
+	if (text_x > SCREEN_LAST_COL && text_y < SCREEN_LAST_ROW)
 	{
 		text_x = 0;
 		text_y++;
@@ -1500,7 +1501,7 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 	int8_t		characters_remaining;
 	int8_t		curr_pos;	// the cursor position within the string
 	uint8_t		curr_len;	// the current length of the string
-	uint8_t		i;
+	int8_t		i;
 	uint8_t		the_char;
 	uint8_t		the_cursor_char_code = CH_SPACE; // SC_CHECKERED;
 	uint8_t		fore_text = COLOR_BRIGHT_WHITE;
@@ -1540,7 +1541,8 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 		the_user_input += curr_len;
 		curr_pos = curr_len; // ie, 1 past the end of the string
 	}
-	
+
+	Text_SetXY(x, start_y);
 
 	// have cursor blink while here
 	Sys_EnableTextModeCursor(true);	// NOTE: on f256jr, this would work. would also need to set dc14-dc17 as cursor moves. skipping because already have working cursor.
@@ -1558,7 +1560,7 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 			// ESC = same as typing nothing and hitting ENTER: cancel action
 			return false;
 		}
-		else if (the_char == KEY_BKSP)
+		else if (the_char == CH_BKSP)
 		{
 			//if (the_user_input != original_string) // original string was starting point of name string, so this prevents us from trying to delete past start
 			if (curr_pos > 0) // prevents us from trying to delete past start
@@ -1608,7 +1610,7 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 				x = start_x;
 			}
 		}
-		else if (the_char == KEY_DEL)
+		else if (the_char == CH_DEL)
 		{
 			if (curr_pos < curr_len)
 			{
@@ -1747,7 +1749,6 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 					for (i = curr_len-1; i >= curr_pos; i--)
 					{
 						the_buffer[i+1] = the_buffer[i];
-						//Text_SetCharAtXY(x + i, start_y, the_buffer[i]);
 					}
 
 					*the_user_input = the_char;
@@ -1757,14 +1758,6 @@ bool Text_GetStringFromUser(char* the_buffer, int8_t the_max_length, uint8_t sta
 					--characters_remaining;
 					++curr_len;
 
-// 					if (curr_pos == curr_len)
-// 					{
-// 					}
-// 					else
-// 					{
-// 					}
-// 	
-// 					Text_SetCharAtXY(x, start_y, the_char);
 					++the_user_input;
 					++x;
 					++curr_pos;

@@ -28,7 +28,7 @@ BINDIR := bin
 
 # Common source files
 ASM_SRCS = f256xe_startup.s memory.s
-C_SRCS = app.c bitmap.c comm_buffer.c debug.c dma.c event.c general.c kernel.c keyboard.c list.c screen.c serial.c startup.c strings.c sys.c text.c ff.c f256xe_diskio.c ffunicode.c
+C_SRCS = app.c bitmap.c comm_buffer.c debug.c dma.c event.c general.c kernel.c keyboard.c list.c screen.c serial.c startup.c strings.c sys.c text.c ff.c ffunicode.c f256xe_diskio.c
 
 MODEL = --code-model=large --data-model=medium
 LIB_MODEL = lc-md
@@ -44,7 +44,8 @@ obj/%.o: %.s
 	as65816 --core=65816 $(MODEL) --target=Foenix --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
 
 obj/%.o: %.c
-	cc65816 --core=65816 $(MODEL) -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+#	cc65816 --core=65816 $(MODEL) -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+	cc65816 --core=65816 $(MODEL) -O2 -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
 
 obj/%-debug.o: %.s
 	as65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<

@@ -69,6 +69,8 @@
 #define ANSI_FUNCTION_CLEAR			'U'		//  Clear the screen with the "normal" attribute and home the cursor
 #define ANSI_FUNCTION_SAVECURPOS	's'		// save current cursor position
 #define ANSI_FUNCTION_RESTORECURPOS	'u'		// restore cursor position from last saven
+#define ANSI_FUNCTION_PRIVHIDEMOUSE	'h'		// ?1000h is a private ANSI combo for "hide mouse pointer"
+#define ANSI_FUNCTION_PRIVSHOWMOUSE	'l'		// ?1000l is a private ANSI combo for "show mouse pointer"
 
 
 
@@ -307,7 +309,7 @@ void Serial_ANSICursorLeft(uint8_t the_count)
 // If the cursor is already at the edge of the screen, this has no effect.
 void Serial_ANSICursorRight(uint8_t the_count)
 {
-	while (serial_x < SCREEN_LAST_COL && the_count > 0)
+	while (serial_x < TERM_BODY_X2 && the_count > 0)
 	{
 		serial_x++;
 		the_count--;
@@ -320,7 +322,7 @@ void Serial_ANSICursorRight(uint8_t the_count)
 // Moves cursor to beginning of the line n (default 1) lines down.
 void Serial_ANSICursorNextLine(uint8_t the_count)
 {
-	serial_x = 0;
+	serial_x = TERM_BODY_X1;
 	
 	while (serial_y < TERM_BODY_Y2 && the_count > 0)
 	{
@@ -339,7 +341,7 @@ void Serial_ANSIScrollDown(bool scroll_page)
 {
 	uint8_t		the_count;
 	
-	serial_x = 0;
+	serial_x = TERM_BODY_X1;
 	
 	if (scroll_page == true)
 	{
@@ -380,7 +382,7 @@ void Serial_ANSIScrollUp(bool scroll_page)
 {
 	uint8_t		the_count;
 	
-	serial_x = 0;
+	serial_x = TERM_BODY_X1;
 	
 	if (scroll_page == true)
 	{
@@ -417,13 +419,13 @@ void Serial_ANSICursorSetXPos(uint8_t the_count)
 	
 	--the_count;
 	
-	if (the_count <= SCREEN_LAST_COL)
+	if (the_count <= TERM_BODY_X2)
 	{
 		serial_x = the_count;
 	}
 	else
 	{
-		serial_x = SCREEN_LAST_COL;
+		serial_x = TERM_BODY_X2;
 	}
 
 	Text_SetXY(serial_x, serial_y);
@@ -483,7 +485,7 @@ void Serial_ANSICursorSetXYPos()
 	// account for fact our screen doesn't start at 0
 	the_y += TERM_BODY_Y1;
 	
-	if (the_y <= TERM_BODY_Y2)
+	if (the_y < TERM_BODY_Y2)
 	{
 		serial_y = the_y;
 	}
@@ -492,13 +494,13 @@ void Serial_ANSICursorSetXYPos()
 		serial_y = TERM_BODY_Y2;
 	}
 	
-	if (the_x <= SCREEN_LAST_COL)
+	if (the_x < TERM_BODY_X2)
 	{
 		serial_x = the_x;
 	}
 	else
 	{
-		serial_x = SCREEN_LAST_COL;
+		serial_x = TERM_BODY_X2;
 	}
 
 	Text_SetXY(serial_x, serial_y);
@@ -573,13 +575,13 @@ void Serial_ANSICursorMoveToXY()
 		}
 	}
 	
-	if (the_x <= SCREEN_LAST_COL)
+	if (the_x <= TERM_BODY_X2)
 	{
 		serial_x = the_x;
 	}
 	else
 	{
-		serial_x = SCREEN_LAST_COL;
+		serial_x = TERM_BODY_X2;
 	}
 
 	Text_SetXY(serial_x, serial_y);
@@ -595,7 +597,7 @@ void Serial_ANSIClear(void)
 	
 	Text_FillBox(TERM_BODY_X1, TERM_BODY_Y1, TERM_BODY_X2, TERM_BODY_Y2, CH_SPACE, serial_fg_color, serial_bg_color);
 
-	serial_x = 0;
+	serial_x = TERM_BODY_X1;
 	serial_y = TERM_BODY_Y1;
 
 	Text_SetXY(serial_x, serial_y);
@@ -615,20 +617,20 @@ void Serial_ANSIEraseInDisplay(uint8_t the_count)
 		case 0:
 			// clear from cursor to end of screen
 			Text_FillBox(TERM_BODY_X1, serial_y, TERM_BODY_X2, TERM_BODY_Y2, CH_SPACE, serial_fg_color, serial_bg_color);
-			serial_x = 0;
+			serial_x = TERM_BODY_X1;
 			break;
 		
 		case 1:
 			// clear from cursor to beginning of the screen. 
 			Text_FillBox(TERM_BODY_X1, TERM_BODY_Y1, TERM_BODY_X2, serial_y, CH_SPACE, serial_fg_color, serial_bg_color);
-			serial_x = 0;
+			serial_x = TERM_BODY_X1;
 			break;
 			
 		case 2:
 		case 3:
 			// clear entire screen
 			Text_FillBox(TERM_BODY_X1, TERM_BODY_Y1, TERM_BODY_X2, TERM_BODY_Y2, CH_SPACE, serial_fg_color, serial_bg_color);
-			serial_x = 0;
+			serial_x = TERM_BODY_X1;
 			serial_y = TERM_BODY_Y1;
 			break;
 			
@@ -680,20 +682,29 @@ void Serial_ANSIEraseInLine(uint8_t the_count)
 void Serial_ANSISendDSR(uint8_t the_count)
 {
 	uint16_t		the_len;
-	
-	the_len = strlen(global_string_buff1);
+// 	uint16_t		result;
 	
 	if (the_count == 6)
 	{
-		sprintf(global_string_buff1, "%c[%02d;%02dR", CH_ESC, (serial_y+1) - TERM_BODY_Y1, serial_x+1);
+		sprintf(global_string_buff1, "%c[%d;%dR", CH_ESC, (serial_y+1) - TERM_BODY_Y1, serial_x+1);
 	}
 	else
 	{
 		sprintf(global_string_buff1, "%c[%02d;%02dR", CH_ESC, TERM_BODY_HEIGHT, TERM_BODY_WIDTH);
 	}
 	
+	the_len = strlen(global_string_buff1);
 	Serial_SendData((uint8_t*)global_string_buff1, the_len);
-Buffer_NewMessage(global_string_buff1);
+// 	if ( (result = Serial_SendData((uint8_t*)global_string_buff1, the_len)) != the_len )
+// 	{
+// 		sprintf(global_string_buff2, "SendDSR fail: tried to send %d bytes, %d reported sent for '%s'", the_len, result, global_string_buff1);
+// 	}
+// 	else
+// 	{
+// 		sprintf(global_string_buff2, "SendDSR success: sent %d bytes for '%s'", the_len, global_string_buff1);
+// 	}
+// 	
+// 	Buffer_NewMessage(global_string_buff2);
 }
 
 
@@ -702,7 +713,7 @@ Buffer_NewMessage(global_string_buff1);
 // the_len contains the length of the sequence, not including the final command character. 
 void Serial_ANSIHandleSGR(uint8_t the_len)
 {
-	uint8_t			i;
+	uint8_t			temp;
 	int16_t			this_color_code;
 	char*			this_token;
 	char*			splitter;
@@ -758,14 +769,31 @@ void Serial_ANSIHandleSGR(uint8_t the_len)
 			// 2 = regular (non-bright) foreground
 			ansi_bold_mode = false;
 		}
-		else if (this_color_code == 5)
+		else if (this_color_code == 3 || this_color_code == 7)
 		{
-			// 5 = flashing text. no easy way to represent this on F256			
+			// 3 = italic. Represent on F256 as inverse video.
+			// 7 = Inverse video. Swap foreground and background colors
+			temp = serial_fg_color;
+			serial_fg_color = serial_bg_color;
+			serial_bg_color = temp;
+		}
+		else if (this_color_code == 4)
+		{
+			// 4 = Underline. no easy way to represent this on F256			
+		}
+		else if (this_color_code == 5 || this_color_code == 6)
+		{
+			// 5 = Slow blink (<150x/min). no easy way to represent this on F256
+			// 6 = Rapid blink. 
 		}
 		else if (this_color_code == 8)
 		{
 			// 8 = invisible text (fore=back)
 			serial_fg_color = serial_bg_color;
+		}
+		else if (this_color_code == 9)
+		{
+			// 9 = crossed-out. no easy way to represent this on F256			
 		}
 		else
 		{
@@ -875,15 +903,12 @@ void Serial_PrintByte(uint8_t the_byte)
 {
 	bool		update_vicky_curs_pos = true;
 
-// 	serial_x = Text_GetX();
-// 	serial_y = Text_GetY();
-	
 	// reset text engine location, in case it has changed due to other action
 	Text_SetXY(serial_x, serial_y);
 	
 	if (the_byte == CH_ENTER)
 	{
-		serial_x = 0;
+		serial_x = TERM_BODY_X1;
 	}
 	else if (the_byte == CH_LF || the_byte == CH_FF)
 	{
@@ -897,7 +922,7 @@ void Serial_PrintByte(uint8_t the_byte)
 			++serial_y;
 		}
 	}
-	else if (the_byte == CH_BKSP)
+	else if (the_byte == CH_BKSP && serial_x > TERM_BODY_X1)
 	{
 		// backspace in ASCII. not sure if right thing is to move back or delete prev char and move back
 		--serial_x;
@@ -907,23 +932,13 @@ void Serial_PrintByte(uint8_t the_byte)
 		Text_SetCharAndColor(the_byte, serial_fg_color, serial_bg_color);
 		serial_x++;	// test lib moved ahead, but locally we need to know if wrapping happened.
 		update_vicky_curs_pos = false;
+
+		if (serial_x > TERM_BODY_X2)
+		{
+			serial_x = TERM_BODY_X2;
+		}
 	}
 	
-	if (serial_x > 79)
-	{
-		serial_x = 0;
-		
-		if (serial_y >= TERM_BODY_Y2)
-		{
-			Text_ScrollTextAndAttrRowsUp(TERM_BODY_Y1+1, TERM_BODY_Y2);
-			Text_FillBox(TERM_BODY_X1, TERM_BODY_Y2, TERM_BODY_X2, TERM_BODY_Y2, CH_SPACE, serial_fg_color, serial_bg_color);
-		}
-		else
-		{
-			++serial_y;
-		}
-	}
-
 	// update cursor position in VICKY so flashing cursor shows where we are
 	if (update_vicky_curs_pos == true)
 	{
@@ -1043,28 +1058,23 @@ void Serial_ProcessANSI(void)
 		
 		case ANSI_FUNCTION_DSR:
 			// Device Status Report
-			Serial_ANSISendDSR(the_len);
+			Serial_ANSISendDSR(the_count);
 			break;
 		
+		case ANSI_FUNCTION_PRIVHIDEMOUSE:
+		case ANSI_FUNCTION_PRIVSHOWMOUSE:
+			// private functions we will not attempt to parse
+			break;
+			
 		default:
-			// ?
+			// unknown (to f/term) ANSI functions: capture in the buffer
 			Buffer_NewMessage((char*)ansi_sequence);
 			break;
 	}
 }
 // stuff found I didn't detect:
-// ?1000h - disable mouse
-// 6n
-// ?1000l - enable mouse
-// 8;25;80t
-// 1;25r
-// u
-// s
-//  ESC [ U    clear
-//    Clear the screen with the "normal" attribute and home the cursor.
-//    New text will use the previously defined attribute.
-//   ESC [ S    scroll up
-
+// 8;25;80t	: Ps = 8 ;  height ;  width ⇒  Resize the text area to given height and width in characters.  Omitted parameters reuse the current height or width.  Zero parameters use the display's height or width
+// 1;25r	: ESC [ <top> ; <bottom> r    set scroll region
 
 
 /*****************************************************************************/
@@ -1098,9 +1108,8 @@ void Serial_InitUART(void)
 	junk = R8(UART_LSR);
 	junk = R8(UART_MSR);
 
-	serial_x = 0;
+	serial_x = TERM_BODY_X1;
 	serial_y = TERM_BODY_Y1;
-	//global_uart_bytes_in_buffer = 0;
 }
 
 
@@ -1120,8 +1129,8 @@ void Serial_SetBaud(uint16_t new_baud_rate_divisor)
 bool Serial_SendByte(uint8_t the_byte)
 {
 	uint8_t		error_check;
-	bool		uart_in_buff_is_empty = false;
-	uint16_t	num_tries = 0;
+// 	bool		uart_in_buff_is_empty = false;
+// 	uint16_t	num_tries = 0;
 	
 	error_check = R8(UART_LSR) & UART_ERROR_MASK;
 	
@@ -1164,18 +1173,13 @@ uint8_t Serial_SendData(uint8_t* the_buffer, uint16_t buffer_size)
 		return 0;
 	}
 	
-	for (i=0; i <= buffer_size; i++)
+	for (i=0; i < buffer_size; i++)
 	{
-		the_byte = the_buffer[i];
-		
-		if (Serial_SendByte(the_byte) == false)
+		if (Serial_SendByte(*the_buffer++) == false)
 		{
 			return i;
 		}
 	}
-	
-	// add a line return if we got this far
-	Serial_SendByte(0x0D);
 	
 	return i;
 }

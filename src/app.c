@@ -60,6 +60,7 @@
 #define ACTION_SELECT_FONT_JA	(CH_LC_J + CH_ALT_OFFSET)	// alt-j
 #define ACTION_SELECT_FONT_ANSI	(CH_LC_A + CH_ALT_OFFSET)	// alt-a
 #define ACTION_SELECT_FONT_IBM	(CH_LC_I + CH_ALT_OFFSET)	// alt-i
+#define ACTION_SET_TIME			(CH_LC_T + CH_ALT_OFFSET)	// alt-t
 #define ACTION_ABORT_SESSION	(CH_ESC + CH_ALT_OFFSET)	// alt-ESC
 #define ACTION_SET_BAUD_300		(CH_1 + CH_ALT_OFFSET)	// alt-1
 #define ACTION_SET_BAUD_1200	(CH_2 + CH_ALT_OFFSET)	// alt-2
@@ -254,6 +255,8 @@ void App_DrawTitleBar(void)
 	//   the font user is using in terminal will control this
 	//   line-drawing glyphs are at different codepoints
 
+	App_EnterStealthTextUpdateMode();
+
 	global_clock_is_visible = true;
 	
 	if (global_ui_charset != UI_MODE_ANSI)
@@ -269,23 +272,24 @@ void App_DrawTitleBar(void)
 
 	Text_FillBoxAttrOnly(3, TITLE_BAR_Y, 13, TITLE_BAR_Y, COLOR_BRIGHT_WHITE, APP_BACKGROUND_COLOR);
 	
-	// update clock display
-	App_DisplayTime();
-	
 	// redraw baud display
 	Text_DrawStringAtXY(TERM_BAUD_X1, TITLE_BAR_Y, General_GetString(app_baud_config[app_current_baud_config].lbl_string_id_), ANSI_COLOR_BRIGHT_BLUE, COLOR_BLACK);	
 
 	// also draw the comms area
 	//Buffer_DrawCommunicationArea();
 	Buffer_RefreshDisplay();
+
+	App_ExitStealthTextUpdateMode();
+	
+	// update clock display - do after exiting stealth mode, because it needs it's own wrappers to that
+	//  as it should be called every 1 min.
+	App_DisplayTime();
 }
 
 
 void App_ChangeUIFont(font_choice the_font)
 {
 	global_font = the_font;
-	
-	// first: do we need to reload the UI with a different set of glyphs?
 	
 	if (the_font == FONT_STD || the_font == FONT_STD_KANA)
 	{
@@ -303,7 +307,7 @@ void App_ChangeUIFont(font_choice the_font)
 		// change cursor to underline style common to ANSI fonts
 		R8(VICKY_TEXT_CURSOR_CHAR) = CH_UNDER;	// full-block option is 219 in ANSI.
 	}
-		
+
 	// separately consider if a font needs to be loaded into VICKY, or just switched over
 	
 	if (the_font == FONT_STD)
@@ -475,6 +479,21 @@ void App_MainLoop(void)
 				{
 					Serial_CycleForegroundColor();
 				}
+				else if (user_input == ACTION_SET_TIME)
+				{
+					General_Strlcpy((char*)&global_dlg_title, General_GetString(ID_STR_DLG_SET_CLOCK_TITLE), COMM_BUFFER_MAX_STRING_LEN);
+					General_Strlcpy((char*)&global_dlg_body_msg, General_GetString(ID_STR_DLG_SET_CLOCK_BODY), APP_DIALOG_WIDTH);
+					global_string_buff2[0] = 0;	// clear whatever string had been in this buffer before
+					
+					success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, 14); //YY-MM-DD HH-MM = 14
+					
+					if (success)
+					{
+						// user entered a date/time string, now try to parse and save it.
+						success = Sys_UpdateRTC(global_string_buff2);
+						App_DisplayTime();
+					}
+				}
 				else if (user_input == ACTION_DEBUG_DUMP)
 				{
 					if (Serial_DebugDump() == true)
@@ -626,7 +645,7 @@ void App_DisplayTime(void)
 	{
 		return;
 	}
-	
+
 	// stop RTC from updating external registers. Required!
 	old_rtc_control = R8(RTC_CONTROL);
 	R8(RTC_CONTROL) = old_rtc_control | 0x08; // stop it from updating external registers
