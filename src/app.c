@@ -55,6 +55,7 @@
 #define COLOR_PROGRESS_BAR		COLOR_CYAN
 
 // key <> action mapping
+#define ACTION_CYCLE_COLOR		(CH_LC_C + CH_ALT_OFFSET)	// alt-c
 #define ACTION_SELECT_FONT_FNX	(CH_LC_F + CH_ALT_OFFSET)	// alt-f
 #define ACTION_SELECT_FONT_JA	(CH_LC_J + CH_ALT_OFFSET)	// alt-j
 #define ACTION_SELECT_FONT_ANSI	(CH_LC_A + CH_ALT_OFFSET)	// alt-a
@@ -238,7 +239,7 @@ void App_ExitStealthTextUpdateMode(void);
 // have serial change baud rate and show msg and label
 void App_ChangeBaudRate(uint8_t new_config_index);
 
-				
+		
 
 /*****************************************************************************/
 /*                       Private Function Definitions                        */
@@ -469,6 +470,10 @@ void App_MainLoop(void)
 				else if (user_input >= ACTION_SET_BAUD_115200 && user_input <= ACTION_SET_BAUD_57600)
 				{
 					App_ChangeBaudRate(user_input - ACTION_SET_BAUD_115200);
+				}
+				else if (user_input == ACTION_CYCLE_COLOR)
+				{
+					Serial_CycleForegroundColor();
 				}
 				else if (user_input == ACTION_DEBUG_DUMP)
 				{

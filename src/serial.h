@@ -159,6 +159,9 @@ void Serial_ANSICursorSave(void);
 // restore cursor position from last save
 void Serial_ANSICursorRestore(void);
 
+// cycle to the next foreground color, updating every cell in the terminal screen
+void Serial_CycleForegroundColor(void);
+
 
 
 // debug function - dump serial buffer to disk

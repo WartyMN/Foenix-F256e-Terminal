@@ -88,6 +88,7 @@ static uint8_t			serial_save_y;	// in case BBS instructs save cursor pos
 
 static uint8_t			serial_fg_color = TERMINAL_DEFAULT_FORE_COLOR;
 static uint8_t			serial_bg_color = TERMINAL_DEFAULT_BACK_COLOR;
+static uint8_t			serial_current_pref_color = ANSI_COLOR_BRIGHT_RED;			// user's preferred foreground color. ANSI will override.
 
 static ANSIcode			serial_ansi_actions[NUM_ANSI_CODES] = 
 {
@@ -240,7 +241,7 @@ void Serial_ANSISendDSR(uint8_t the_count);
 // ANSI sequence to process is already in ansi_sequence (ESC [ is not included)
 // the_len contains the length of the sequence, not including the final command character. 
 void Serial_ANSIHandleSGR(uint8_t the_len);
-
+	
 
 /*****************************************************************************/
 /*                       Private Function Definitions                        */
@@ -1066,7 +1067,6 @@ void Serial_ProcessANSI(void)
 
 
 
-
 /*****************************************************************************/
 /*                        Public Function Definitions                        */
 /*****************************************************************************/
@@ -1258,6 +1258,21 @@ void Serial_ANSICursorRestore(void)
 	serial_x = serial_save_x;
 	serial_y = serial_save_y;
 	Text_SetXY(serial_x, serial_y);
+}
+
+
+// cycle to the next foreground color, updating every cell in the terminal screen
+void Serial_CycleForegroundColor(void)
+{
+	serial_current_pref_color++;
+	
+	if (serial_current_pref_color > 15)
+	{
+		serial_current_pref_color = 1;		// you aren't allowed to select black on black
+	}
+	
+	Text_FillBoxAttrOnly(TERM_BODY_X1, TERM_BODY_Y1, TERM_BODY_X2, TERM_BODY_Y2, serial_current_pref_color, COLOR_BLACK);
+	serial_fg_color = serial_current_pref_color;
 }
 
 
