@@ -51,9 +51,9 @@
 #define COMM_BUFFER_MAX_STRING_LEN	192	// we only allow for one line at a time, but keep a 192b buffer available for overruns?
 
 #define COMM_BUFFER_NUM_COLS	(80 - 2)	// account for box draw chars
-#define COMM_BUFFER_NUM_ROWS	5
+#define COMM_BUFFER_NUM_ROWS	4
 #define COMM_BUFFER_FIRST_COL	1	// allow for 1 col of box draw chars
-#define COMM_BUFFER_FIRST_ROW	25
+#define COMM_BUFFER_FIRST_ROW	26
 #define COMM_BUFFER_LAST_COL	(COMM_BUFFER_NUM_COLS - 0)
 #define COMM_BUFFER_LAST_ROW	29
 #define COMM_BUFF_SIZE			(COMM_BUFFER_NUM_ROWS * (COMM_BUFFER_NUM_COLS + 1))
