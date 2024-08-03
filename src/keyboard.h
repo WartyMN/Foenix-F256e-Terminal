@@ -147,7 +147,8 @@
 #define CH_TAB          9
 #define CH_COPYRIGHT	215
 #define CH_BKSP   		0x08	
-#define CH_DEL   		0x7F	// 127	
+#define CH_DEL   		0x7F	// 127
+#define CH_MENU			0xFF	// no particular reason for selecting FF.
 
 #define CH_K0      		'0'	
 #define CH_K1      		'1'	

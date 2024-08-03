@@ -27,8 +27,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
 
 
 // F256 includes
@@ -40,7 +38,7 @@
 /*                               Definitions                                 */
 /*****************************************************************************/
 
-#define NUM_ACTION_KEY_MAPS			6
+#define NUM_ACTION_KEY_MAPS			7
 #define NUM_ACTION_KEY_MAP_BYTES	(NUM_ACTION_KEY_MAPS * 2)
 #define NUM_GRAPHIC_MAPPED_KEYS		99
 #define FIRST_GRAPHIC_MAPPED_KEY	33		// the charset code point to start mapping to JIS. 
@@ -126,6 +124,7 @@ static uint8_t			kbd_modifiers;
 //static event_kind		kbd_event_what;
 //static event_modifiers	kbd_modifiers;
 static bool				kbd_is_modifier_key;
+static bool				kbd_capslock_status;	// tracks status of capslock key for computers with built-in capslock keys and for PS/2 keyboards.
 static EventRecord*		kbd_event;
 //static uint8_t			kbd_kana_mode_label[2] = {CH_JIS_KA, CH_JIS_NA};
 
@@ -137,20 +136,38 @@ const static uint8_t keymap[NUM_MAPPED_KEYS] =
 	0, KEY_F9, 0, KEY_F5, KEY_F3, KEY_F1, KEY_F2, KEY_F12, 	//0x00
 	0, KEY_F10, KEY_F8, KEY_F6, KEY_F4, CH_TAB, '`', 0,
 	0, KEY_LALT, KEY_LSHIFT, 0, KEY_LCTRL, 'q', '1', 0, 	//0x10
-	0, 0, 'z', 's', 'a', 'w', '2', 0,
-	0, 'c', 'x', 'd', 'e', '4', '3', 0, 				//0x20
-	0, ' ', 'v', 'f', 't', 'r', '5', 0,
-	0, 'n', 'b', 'h', 'g', 'y', '6', 0, 				//0x30
+	0, 0, 'z', 's', 'a', 'w', '2', KEY_LMETA,
+	0, 'c', 'x', 'd', 'e', '4', '3', KEY_RMETA, 			//0x20
+	0, ' ', 'v', 'f', 't', 'r', '5', KEY_MENU,
+	0, 'n', 'b', 'h', 'g', 'y', '6', 0, 					//0x30
 	0, 0, 'm', 'j', 'u', '7', '8', 0,
-	0, ',', 'k', 'i', 'o', '0', '9', 0, 				//0x40
+	0, ',', 'k', 'i', 'o', '0', '9', 0, 					//0x40
 	0, '.', '/', 'l', ';', 'p', '-', 0,	// note: not seeing difference between / on keypad vs main part of keyboard.
-	0, 0, '\'', 0, '[', '=', 0, 0, 						//0x50
+	0, 0, '\'', 0, '[', '=', 0, 0, 							//0x50
 	KEY_CAPS, KEY_RSHIFT, CH_ENTER, ']', 0, '\\', 0, 0,
-	0, 0, 0, 0, 0, 0, KEY_BKSP, 0, 						//0x60
+	0, 0, 0, 0, 0, 0, KEY_BKSP, 0, 							//0x60
 	0, CH_K1, 0, CH_K4, CH_K7, 0, 0, 0,
 	CH_K0, CH_KPOINT, CH_K2, CH_K5, CH_K6, CH_K8, KEY_ESC, KEY_NUM, //0x70
 	KEY_F11, CH_KPLUS, CH_K3, CH_KMINUS, CH_KTIMES, CH_K9, KEY_SCROLL, 0,
 	0, 0, 0, KEY_F7, KEY_SYSREQ, 0, 0, 0, 0, 				//0x80
+};
+
+// table of extended 0 keys: code from PS2 and our key code. 
+// does not include modifier keys, as those are already processed by unified_modifier_keys
+const static uint8_t ps2_extended_keys[NUM_EXTENDED_KEY_BYTES] = 
+{
+	0x4a, KEY_KDIV,
+	0x5a, KEY_KENTER,
+	0x69, KEY_END,
+	0x6b, KEY_CURS_LEFT,
+	0x6c, KEY_HOME,
+	0x70, KEY_INS,
+	0x71, KEY_DEL,
+	0x72, KEY_CURS_DOWN,
+	0x74, KEY_CURS_RIGHT,
+	0x75, KEY_CURS_UP,
+	0x7a, KEY_PGDN,
+	0x7d, KEY_PGUP,
 };
 
 // mapping from ASCII 33 ('!') through 122 ('z'), to the Japanese JIS characters
@@ -164,7 +181,7 @@ const static uint8_t ascii_2_jis[NUM_JIS_MAPPED_KEYS] =
 	'G',			'H',			'I',			'J',			'K',			'L',			'M',			'N',			// 0x48
 	'O',			'P',			'Q',			'R',			'S',			'T',			'U',			'V',			// 0x50
 	'W',			'X',			'Y',			'Z',			CH_JIS_RO,		'\\',			CH_JIS_MU,		CH_JIS_L_O,		// 0x58
-	CH_JIS_B,		'\'',			CH_LINE_ES,		CH_JIS_KO,		CH_JIS_SO,		CH_JIS_SHI,		CH_JIS_I,		CH_JIS_HA,		// 0x60
+	CH_JIS_B,		'\'',			CH_JIS_TI,		CH_JIS_KO,		CH_JIS_SO,		CH_JIS_SHI,		CH_JIS_I,		CH_JIS_HA,		// 0x60
 	CH_JIS_KI,		CH_JIS_KU,		CH_JIS_NI,		CH_JIS_MA,		CH_JIS_NO,		CH_JIS_RI,		CH_JIS_MO,		CH_JIS_MI,		// 0x68
 	CH_JIS_RA,		CH_JIS_SE,		CH_JIS_TA,		CH_JIS_SU,		CH_JIS_TO,		CH_JIS_KA,		CH_JIS_NA,		CH_JIS_HI,		// 0x70
 	CH_JIS_TE,		CH_JIS_SA,		CH_JIS_N,		CH_JIS_TSU,		CH_JIS_OPEN,	'|',			CH_JIS_CLOSE					// 0x78
@@ -274,24 +291,6 @@ const static uint8_t unified_modifier_keys[NUM_MODIFIER_KEY_BYTES] =
 	KEY_CAPS, KEY_UNIFIED_CAPS,
 };
 
-// table of extended 0 keys: code from PS2 and our key code. 
-// does not include modifier keys, as those are already processed by unified_modifier_keys
-const static uint8_t ps2_extended_keys[NUM_EXTENDED_KEY_BYTES] = 
-{
-	0x4a, KEY_KDIV,
-	0x5a, KEY_KENTER,
-	0x69, KEY_END,
-	0x6b, KEY_CURS_LEFT,
-	0x6c, KEY_HOME,
-	0x70, KEY_INS,
-	0x71, KEY_DEL,
-	0x72, KEY_CURS_DOWN,
-	0x74, KEY_CURS_RIGHT,
-	0x75, KEY_CURS_UP,
-	0x7a, KEY_PGDN,
-	0x7d, KEY_PGUP,
-};
-
 // table of custom shifted chars (rather than a->A, b->B, etc.) 
 const static uint8_t shift_combos[NUM_SHIFT_COMBO_BYTES] = 
 {
@@ -333,6 +332,7 @@ const static uint8_t action_key_maps[NUM_ACTION_KEY_MAP_BYTES] =
 	KEY_TAB,	CH_TAB,
 	KEY_ESC,	CH_ESC,
 	KEY_BREAK,	CH_ESC,
+	KEY_MENU,	CH_MENU,
 };
 
 // uint8_t		event_key_queue[KBD_INT_QUEUE_SIZE];
@@ -340,8 +340,8 @@ const static uint8_t action_key_maps[NUM_ACTION_KEY_MAP_BYTES] =
 // uint8_t		event_key_queue_read_idx;
 
 #ifdef _F256K_
+
 	bool			kbd_initialized = false;
-	bool			kbd_capslock_status;	// tracks status of capslock key for computers with built-in capslock keys. No relation to capslock on PS/2 keyboards.
 
 	uint8_t			kbd_row_state[KBD_COLUMNS];		// for F256K internal keyboard, the tracked state of the 9 rows in keyboard matrix
 	uint8_t			kbd_new_row_state[KBD_COLUMNS];		// for F256K internal keyboard, the current/new state of the 9 rows in keyboard matrix
@@ -372,7 +372,6 @@ const static uint8_t action_key_maps[NUM_ACTION_KEY_MAP_BYTES] =
 		{'1',	CH_ESC,	KEY_LCTRL,'2',	' ',	KEY_LMETA,'q',	KEY_BREAK,0xff,},			// 0x3f - 0x47
 	};
 
-
 #endif
 
 
@@ -384,7 +383,6 @@ EventManager		global_event_manager_storage;
 EventManager*		global_event_manager = &global_event_manager_storage;
 
 extern uint8_t*			global_uart_in_buffer;
-//extern uint8_t*			global_uart_in_buffer_cur_pos;
 extern uint16_t			global_uart_write_idx;
 extern uint16_t			global_uart_read_idx;
 
@@ -489,18 +487,48 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 				kbd_mapped_char = 0;
 				kbd_event_what = EVENT_KEYUP;
 			}
-			
-			if (ps2_e0 || ps2_e1)
+			else
 			{
+				kbd_temp_char = keymap[kbd_raw_code];
+				//sprintf(global_string_buff1, "%s %d: this key pressed: raw=%x, temp=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
+				//Buffer_NewMessage(global_string_buff1);
+				// R8(VICKY_TEXT_CHAR_RAM + 240) = kbd_raw_code;
+				// R8(VICKY_TEXT_CHAR_RAM + 241) = kbd_temp_char;
+				// R8(VICKY_TEXT_CHAR_RAM + 242) = kbd_mapped_char;
+			}
+			
+			if (ps2_e1)
+			{
+				if (kbd_raw_code == 0x14)
+				{
+					kbd_mapped_char = KEY_PAUSE;
+				}
+				else
+				{
+					kbd_mapped_char = 0;
+				}
+				//sprintf(global_string_buff1, "%s %d: e1 active; kbd_raw_code=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_mapped_char);
+				//Buffer_NewMessage(global_string_buff1);
+			}
+			else
+			{
+				// continue processing the key code
+
 				if (ps2_e0)
 				{
 					//  Map keys prefixed with $e0
+					// R8(VICKY_TEXT_CHAR_RAM + 320) = kbd_raw_code;
+					// R8(VICKY_TEXT_CHAR_RAM + 321) = kbd_temp_char;
+					// R8(VICKY_TEXT_CHAR_RAM + 322) = kbd_mapped_char;
 					
 					for (kbd_j = 0; kbd_j < NUM_EXTENDED_KEY_BYTES; kbd_j=kbd_j+2)
 					{
 						if (ps2_extended_keys[kbd_j] == kbd_raw_code)
 						{
-							kbd_mapped_char = ps2_extended_keys[kbd_j+1];
+							kbd_temp_char = ps2_extended_keys[kbd_j+1];
+							kbd_raw_code = kbd_temp_char;
+							// R8(VICKY_TEXT_CHAR_RAM + 320) = kbd_raw_code;
+							// R8(VICKY_TEXT_CHAR_RAM + 321) = kbd_temp_char;
 							break;
 						}
 					}
@@ -508,28 +536,10 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					//Buffer_NewMessage(global_string_buff1);
 				}
 				
-				if (ps2_e1)
-				{
-					if (kbd_raw_code == 0x14)
-					{
-						kbd_mapped_char = KEY_PAUSE;
-					}
-					else
-					{
-						kbd_mapped_char = 0;
-					}
-					//sprintf(global_string_buff1, "%s %d: e1 active; kbd_raw_code=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_mapped_char);
-					//Buffer_NewMessage(global_string_buff1);
-				}
-			}
-			else
-			{
-				// continue processing the key code
-				
 				// check if this was a modifier key by merging to simplified list of modifier keys (no left/right)
 				for (kbd_j = 0; kbd_j < NUM_MODIFIER_KEY_BYTES; kbd_j=kbd_j+2)
 				{
-					if (unified_modifier_keys[kbd_j] == kbd_raw_code)
+					if (unified_modifier_keys[kbd_j] == kbd_temp_char)
 					{
 						kbd_temp_char = unified_modifier_keys[kbd_j+1];
 						
@@ -547,95 +557,298 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						kbd_is_modifier_key = true;
 						//sprintf(global_string_buff1, "%s %d: modifier key detected, released=%u; kbd_raw_code=%x, modifier=%x", __func__, __LINE__, ps2_released, kbd_raw_code, kbd_temp_char);
 						//Buffer_NewMessage(global_string_buff1);
+						// R8(VICKY_TEXT_CHAR_RAM + 400) = kbd_raw_code;
+						// R8(VICKY_TEXT_CHAR_RAM + 401) = kbd_temp_char;
+						// R8(VICKY_TEXT_CHAR_RAM + 402) = kbd_mapped_char;
+
+						if (kbd_temp_char == KEY_UNIFIED_CAPS)
+						{
+							// LOGIC:
+							//   capslock-specific light only controlled by capslock key when in a standard keymap. not in kana or PETSCII, e.g. 
+							
+							// turn capslock light on and off on the key down action. ignore key up.
+							if (ps2_released == 0)
+							{
+								if (kbd_capslock_status == false)
+								{
+									kbd_capslock_status = true;
+									
+								#ifdef _F256K_
+									if (kbd_map_mode == KEY_SETMAP_STD)
+									{
+										R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+									}
+								#endif
+								}
+								else if (kbd_capslock_status == true)
+								{
+									kbd_capslock_status = false;
+									
+								#ifdef _F256K_
+									if (kbd_map_mode == KEY_SETMAP_STD)
+									{
+										R8(SYS0_REG) = R8(SYS0_REG) & (0xff - FLAG_SYS0_REG_W_CAP_EN);
+									}
+								#endif
+								}
+							}
+						}
+
 						break;
 					}
 				}
 
 				if (kbd_is_modifier_key == false)
 				{
-					// shifted vs special keys
-					if (kbd_raw_code > 127)
+					// was not a special key
+
+					// R8(VICKY_TEXT_CHAR_RAM + 480) = 32;
+					// R8(VICKY_TEXT_CHAR_RAM + 481) = 32;
+					// R8(VICKY_TEXT_CHAR_RAM + 482) = 32;
+					// R8(VICKY_TEXT_CHAR_RAM + 560) = kbd_raw_code;
+					// R8(VICKY_TEXT_CHAR_RAM + 561) = kbd_temp_char;
+					// R8(VICKY_TEXT_CHAR_RAM + 562) = kbd_mapped_char;
+
+					// CAPSLOCK was on? If so make lowercase uppercase, but only touch a-z chars.
+					if (kbd_capslock_status == true)
 					{
-						// a few special keys up here (Function keys, etc.), use map to get right char code
-						kbd_mapped_char = keymap[kbd_raw_code];
-// 						sprintf(global_string_buff1, "%s %d: raw code > 127; kbd_raw_code=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_mapped_char);
-// 						Buffer_NewMessage(global_string_buff1);
+						if (kbd_temp_char >= 'a' && kbd_temp_char <= 'z')
+						{
+							kbd_temp_char -= 32;
+						}
+					}
+					
+					// SHIFT?
+					if (modifier_keys_pressed[KEY_UNIFIED_SHIFT])
+					{
+						if (kbd_temp_char >= 'a' && kbd_temp_char <= 'z')
+						{
+							kbd_temp_char -= 32;
+						}
+						else
+						{
+							for (kbd_j = 0; kbd_j < NUM_SHIFT_COMBO_BYTES; kbd_j=kbd_j+2)
+							{
+								if (shift_combos[kbd_j] == kbd_temp_char)
+								{
+									kbd_temp_char = shift_combos[kbd_j+1];
+									break;
+								}
+							}
+						}
+						// sprintf(global_string_buff1, "%s %d: shift was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
+						// Buffer_NewMessage(global_string_buff1);
+						
+						kbd_modifiers |= KEY_FLAG_SHIFT;
+					}
+
+					// CONTROL?
+					if (modifier_keys_pressed[KEY_UNIFIED_CTRL])
+					{
+						// CTRL for ASCII: project codes down to $00-$1F
+						kbd_temp_char &= 0x1f;
+						// sprintf(global_string_buff1, "%s %d: control was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
+						// Buffer_NewMessage(global_string_buff1);
+						
+						kbd_modifiers |= KEY_FLAG_CTRL;
+					}
+					
+					// ALT?
+					if (modifier_keys_pressed[KEY_UNIFIED_ALT])
+					{
+						// ALT for ASCII: add 96. gets you access to most chars.
+						kbd_temp_char = kbd_temp_char + CH_ALT_OFFSET;
+						// sprintf(global_string_buff1, "%s %d: alt was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
+						// Buffer_NewMessage(global_string_buff1);
+							
+						kbd_modifiers |= KEY_FLAG_ALT;
+					}
+					
+					// Meta (Foenix)?
+					if (modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						// Foenix/meta/windows key: do not modify mapped value, just set the modifier flag
+						//  let calling program do whatever it needs to with that info
+						kbd_modifiers |= KEY_FLAG_META;
+					}
+					
+					// did we just switch key layouts?
+					if (kbd_temp_char == KEY_SETMAP_KANA && modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						kbd_map_mode = KEY_SETMAP_KANA;
+					#ifdef _F256K_
+						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_KANA_LED_B;
+						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_KANA_LED_G;
+						R8(LED_CAPSLOCK_RED) = KBD_MAP_KANA_LED_R;
+						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+					#endif
+						// switch to font set #2, which has JA font loaded
+						R8(VICKY_MASTER_CTRL_REG_H) = (VICKY_RES_FON_SET);
+
+						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = kbd_kana_mode_label[0];
+						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = kbd_kana_mode_label[1];
+					}
+					else if (kbd_temp_char == KEY_SETMAP_STD && modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						kbd_map_mode = KEY_SETMAP_STD;
+					#ifdef _F256K_
+						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_STD_LED_B;
+						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_STD_LED_G;
+						R8(LED_CAPSLOCK_RED) = KBD_MAP_STD_LED_R;
+					#endif
+						// make sure we are using font #1, not #2, which has JA font loaded
+						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						
+						// for STD mode, only turn on LED if capslock mode is actually active
+						if (kbd_capslock_status == true)
+						{
+							R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+						}
+						else
+						{
+							R8(SYS0_REG) = R8(SYS0_REG) & (0xff - FLAG_SYS0_REG_W_CAP_EN);
+						}
+						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
+						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = 0x07;	// inverse space
+					}
+					else if (kbd_temp_char == KEY_SETMAP_FOENISCII_1 && modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						kbd_map_mode = KEY_SETMAP_FOENISCII_1;
+					#ifdef _F256K_
+						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_FOENISCII_1_LED_B;
+						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_FOENISCII_1_LED_G;
+						R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_1_LED_R;
+						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+					#endif
+						// make sure we are using font #1, not #2, which has JA font loaded
+						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
+						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
+					}
+					else if (kbd_temp_char == KEY_SETMAP_FOENISCII_2 && modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						kbd_map_mode = KEY_SETMAP_FOENISCII_2;
+					#ifdef _F256K_
+						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_FOENISCII_2_LED_B;
+						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_FOENISCII_2_LED_G;
+						R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_2_LED_R;
+						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+					#endif
+						// make sure we are using font #1, not #2, which has JA font loaded
+						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
+						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
+					}
+					else if (kbd_temp_char == KEY_SETMAP_PETSCII && modifier_keys_pressed[KEY_UNIFIED_META])
+					{
+						kbd_map_mode = KEY_SETMAP_PETSCII;
+					#ifdef _F256K_
+						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_PETSCII_LED_B;
+						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_PETSCII_LED_G;
+						R8(LED_CAPSLOCK_RED) = KBD_MAP_PETSCII_LED_R;
+						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
+					#endif
+						// make sure we are using font #1, not #2, which has JA font loaded
+						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 'C';	// C=. Maybe [F] box better?
+						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = '=';	//
 					}
 					else
 					{
-						// was not a special key
-						kbd_temp_char = keymap[kbd_raw_code];
+						// was this an action key? if not, check if remapping is needed
 						
-						// SHIFT?
-						if (modifier_keys_pressed[KEY_UNIFIED_SHIFT])
+						if ( (kbd_raw_code >= KEY_F1 && kbd_raw_code <= KEY_ESC) ||
+							(kbd_raw_code >= KEY_KENTER && kbd_raw_code <= KEY_PAUSE) ||
+							kbd_temp_char == KEY_BKSP)
 						{
-							if (kbd_temp_char >= 'a' && kbd_temp_char <= 'z')
+							// IS an action key: set flag so consuming routine knows not to use as glyph
+							kbd_modifiers |= KEY_FLAG_ACTION;
+							
+							// do remapping where available
+							kbd_mapped_char = kbd_temp_char;
+							
+							for (kbd_j = 0; kbd_j < NUM_ACTION_KEY_MAP_BYTES; kbd_j=kbd_j+2)
 							{
-								kbd_temp_char -= 32;
-							}
-							else
-							{
-								for (kbd_j = 0; kbd_j < NUM_SHIFT_COMBO_BYTES; kbd_j=kbd_j+2)
+								if (action_key_maps[kbd_j] == kbd_temp_char)
 								{
-									if (shift_combos[kbd_j] == kbd_temp_char)
-									{
-										kbd_temp_char = shift_combos[kbd_j+1];
-										break;
-									}
+									kbd_mapped_char = action_key_maps[kbd_j+1];
+									// R8(VICKY_TEXT_CHAR_RAM + 720) = 32;
+									// R8(VICKY_TEXT_CHAR_RAM + 721) = 32;
+									// R8(VICKY_TEXT_CHAR_RAM + 722) = 32;
+									// R8(VICKY_TEXT_CHAR_RAM + 640) = kbd_raw_code;
+									// R8(VICKY_TEXT_CHAR_RAM + 641) = kbd_temp_char;
+									// R8(VICKY_TEXT_CHAR_RAM + 642) = kbd_mapped_char;
+									break;
 								}
 							}
-// 							sprintf(global_string_buff1, "%s %d: shift was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
-// 							Buffer_NewMessage(global_string_buff1);
 							
-							kbd_modifiers |= KEY_FLAG_SHIFT;
 						}
-	
-						// CONTROL?
-						if (modifier_keys_pressed[KEY_UNIFIED_CTRL])
+						else
 						{
-							// CTRL for ASCII: project codes down to $00-$1F
-							kbd_temp_char &= 0x1f;
-// 							sprintf(global_string_buff1, "%s %d: control was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
-// 							Buffer_NewMessage(global_string_buff1);
+							// not an action key: remap or use as is.
 							
-							kbd_modifiers |= KEY_FLAG_CTRL;
+							// do remapping for other character / key layouts?
+							if (kbd_map_mode == KEY_SETMAP_KANA)
+							{
+								if (kbd_temp_char >= FIRST_JIS_MAPPED_KEY && kbd_temp_char <= LAST_JIS_MAPPED_KEY)
+								{
+									kbd_temp_char -= FIRST_JIS_MAPPED_KEY;
+									kbd_temp_char = ascii_2_jis[kbd_temp_char];
+								}
+							}
+							else if (kbd_map_mode == KEY_SETMAP_FOENISCII_1)
+							{
+								if (kbd_temp_char >= FIRST_GRAPHIC_MAPPED_KEY && kbd_temp_char <= LAST_GRAPHIC_MAPPED_KEY)
+								{
+									kbd_temp_char -= FIRST_GRAPHIC_MAPPED_KEY;
+									kbd_temp_char = ascii_2_foenscii_set1[kbd_temp_char];
+								}
+							}
+							else if (kbd_map_mode == KEY_SETMAP_FOENISCII_2)
+							{
+								if (kbd_temp_char >= FIRST_GRAPHIC_MAPPED_KEY && kbd_temp_char <= LAST_GRAPHIC_MAPPED_KEY)
+								{
+									kbd_temp_char -= FIRST_GRAPHIC_MAPPED_KEY;
+									kbd_temp_char = ascii_2_foenscii_set2[kbd_temp_char];
+								}
+							}
+							else if (kbd_map_mode == KEY_SETMAP_PETSCII)
+							{
+								if (kbd_temp_char >= FIRST_GRAPHIC_MAPPED_KEY && kbd_temp_char <= LAST_GRAPHIC_MAPPED_KEY)
+								{
+									kbd_temp_char -= FIRST_GRAPHIC_MAPPED_KEY;
+									kbd_temp_char = ascii_2_petscii[kbd_temp_char];
+								}
+							}
+							
+							kbd_mapped_char = kbd_temp_char;
+							// R8(VICKY_TEXT_CHAR_RAM + 720) = kbd_raw_code;
+							// R8(VICKY_TEXT_CHAR_RAM + 721) = kbd_temp_char;
+							// R8(VICKY_TEXT_CHAR_RAM + 722) = kbd_mapped_char;
+							// R8(VICKY_TEXT_CHAR_RAM + 640) = 32;
+							// R8(VICKY_TEXT_CHAR_RAM + 641) = 32;
+							// R8(VICKY_TEXT_CHAR_RAM + 642) = 32;
 						}
-						
-						// ALT?
-						if (modifier_keys_pressed[KEY_UNIFIED_ALT])
-						{
-							// ALT for ASCII: set the high bit
-							//kbd_raw_code *= 2;
-							kbd_temp_char = kbd_temp_char | 0xF0;
-// 							sprintf(global_string_buff1, "%s %d: alt was down; kbd_raw_code=%x, kbd_temp_char=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char);
-// 							Buffer_NewMessage(global_string_buff1);
-								
-							kbd_modifiers |= KEY_FLAG_CTRL;
-						}
-						
-						// Meta (Foenix)?
-						if (modifier_keys_pressed[KEY_UNIFIED_META])
-						{
-							// Foenix/meta/windows key: do not modify mapped value, just set the modifier flag
-							//  let calling program do whatever it needs to with that info
-							kbd_modifiers |= KEY_FLAG_META;
-						}
-						
-						kbd_mapped_char = kbd_temp_char;
-// 						sprintf(global_string_buff1, "%s %d: done; kbd_raw_code=%x, kbd_temp_char=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char, kbd_mapped_char);
-// 						Buffer_NewMessage(global_string_buff1);
+
+						// sprintf(global_string_buff1, "%s %d: done; kbd_raw_code=%x, kbd_temp_char=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char, kbd_mapped_char);
+						// Buffer_NewMessage(global_string_buff1);
 					}
+
+
+					//R8(VICKY_TEXT_CHAR_RAM + 328) = kbd_mapped_char;
+					//R8(VICKY_TEXT_CHAR_RAM + 329) = 48 + kbd_mapped_char;						
+					// sprintf(global_string_buff1, "%s %d: done; kbd_raw_code=%x, kbd_temp_char=%x, mapped=%x", __func__, __LINE__, kbd_raw_code, kbd_temp_char, kbd_mapped_char);
+					// Buffer_NewMessage(global_string_buff1);
 				}
 			}		
 		}
 		
 		if (kbd_mapped_char)
 		{
-			//the_code = (kbd_raw_code << 8) | kbd_mapped_char;
-// 			EventManager_AddEvent(kbd_event_what, kbd_raw_code, kbd_mapped_char, kbd_modifiers);
+			// EventManager_AddEvent(kbd_event_what, kbd_raw_code, kbd_mapped_char, kbd_modifiers);
 					
-		// 	sprintf(global_string_buff1, "%s %d: reached; kbd_event_what=%i, raw=%x, mapped=%x", __func__, __LINE__, kbd_event_what, the_kbd_raw_code, the_mapped_code);
-		// 	Buffer_NewMessage(global_string_buff1);
+			// 	sprintf(global_string_buff1, "%s %d: reached; kbd_event_what=%i, raw=%x, mapped=%x", __func__, __LINE__, kbd_event_what, the_kbd_raw_code, the_mapped_code);
+			// 	Buffer_NewMessage(global_string_buff1);
 			
 			kbd_event = &global_event_manager->queue_[global_event_manager->write_idx_++];
 			global_event_manager->write_idx_ %= EVENT_QUEUE_SIZE;
@@ -650,6 +863,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 		}
 
 // 		// DEBUG: light up a spot on screen based on key being on or off
+// 		uint8_t		i;
 // 		for (i = 0; i < NUM_UNIFIED_MODIFIER_KEYS; i++)
 // 		{
 // 			R8(DEBUG_SHIFT_VRAM_LOC + i) = 48 + modifier_keys_pressed[i];
