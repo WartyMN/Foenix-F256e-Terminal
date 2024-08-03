@@ -44,8 +44,7 @@ obj/%.o: %.s
 	as65816 --core=65816 $(MODEL) --target=Foenix --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
 
 obj/%.o: %.c
-#	cc65816 --core=65816 $(MODEL) -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
-	cc65816 --core=65816 $(MODEL) -O2 -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+	cc65816 --core=65816 $(MODEL) -O1 -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
 
 obj/%-debug.o: %.s
 	as65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<

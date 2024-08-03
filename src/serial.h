@@ -145,9 +145,9 @@ bool Serial_SendByte(uint8_t the_byte);
 // returns false if no bytes were available
 bool Serial_ProcessAvailableData(void);
 
-// get a single byte from UART serial connection
-// returns -1 if no byte was received before specified timeout period passes
-int16_t Serial_GetByte(int32_t the_timeout);
+// // get a single byte from UART serial connection
+// // returns -1 if no byte was received before specified timeout period passes
+// int16_t Serial_GetByte(int32_t the_timeout);
 
 // flush the in (Rx) buffer
 // resets circular buffer pointers so that any not-yet-processed bytes are forgotten about
@@ -161,6 +161,9 @@ void Serial_ANSICursorRestore(void);
 
 // cycle to the next foreground color, updating every cell in the terminal screen
 void Serial_CycleForegroundColor(void);
+
+// // start YMODEM file receive
+// bool Serial_StartYModemReceive(void);
 
 
 

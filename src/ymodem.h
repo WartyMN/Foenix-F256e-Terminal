@@ -29,9 +29,12 @@
 #define FYMODEM_FILE_NAME_MAX_LENGTH  (64)
 
 /* receive file over ymodem */
+// int32_t fymodem_receive(uint8_t *rxdata,
+//                         size_t rxsize,
+//                         char filename[FYMODEM_FILE_NAME_MAX_LENGTH]);
 int32_t fymodem_receive(uint8_t *rxdata,
                         size_t rxsize,
-                        char filename[FYMODEM_FILE_NAME_MAX_LENGTH]);
+                        char** fname_ptp);
 
 /* send file over ymodem */
 int32_t fymodem_send(uint8_t *txdata,

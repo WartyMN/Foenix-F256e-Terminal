@@ -37,6 +37,7 @@
 #include "comm_buffer.h"
 #include "general.h"
 #include "serial.h"
+#include <stdint.h>
 
 
 extern char*			global_string_buff1;
@@ -164,92 +165,150 @@ static void ym_readU32(const uint8_t* buf, uint32_t *val)
   *        -1: timeout or packet error
   *         1: abort by user / corrupt packet
   */
-static int32_t ym_rx_packet(uint8_t *rxdata,
-                            int32_t *rxlen,
+static int16_t ym_rx_packet(uint8_t *rxdata,
+                            int16_t *rxlen,
                             uint32_t packets_rxed,
                             uint32_t timeout_ms)
 {
   *rxlen = 0;
   
-  int32_t c = __ym_getchar(timeout_ms);
-  if (c < 0) {
+  int16_t c = __ym_getchar(timeout_ms);
+  
+  if (c < 0)
+  {
     /* end of stream */
-    return -1;
+		sprintf(global_string_buff1, "%s %d: end of stream? c=%i '%c'", __func__, __LINE__, c, c);
+		Buffer_NewMessage(global_string_buff1);
+	return -1;
   }
 
   uint32_t rx_packet_size;
 
-  switch (c) {
-  case YM_SOH:
-    rx_packet_size = YM_PACKET_SIZE;
-    break;
-  case YM_STX:
-    rx_packet_size = YM_PACKET_1K_SIZE;
-    break;
-  case YM_EOT:
-    /* ok */
-    return 0;
-  case YM_CAN:
-    c = __ym_getchar(timeout_ms);
-    if (c == YM_CAN) {
-      *rxlen = -1;
-      /* ok */
-      return 0;
-    }
-    /* fall-through */
-  case YM_CRC:
-    if (packets_rxed == 0) {
-      /* could be start condition, first byte */
-      return 1;
-    }
-   /* fall-through */
-  case YM_ABT1:
-  case YM_ABT2:
-    /* User try abort, 'A' or 'a' received */
-    return 1;
-  default:
-    /* This case could be the result of corruption on the first octet
-       of the packet, but it's more likely that it's the user banging
-       on the terminal trying to abort a transfer. Technically, the
-       former case deserves a NAK, but for now we'll just treat this
-       as an abort case. */
-    *rxlen = -1;
-    return 0;
-  }
+	switch (c)
+	{
+		case YM_SOH:
+			rx_packet_size = YM_PACKET_SIZE;
+			sprintf(global_string_buff1, "%s %d: rx_packet_size = YM_PACKET_SIZE", __func__, __LINE__);
+			Buffer_NewMessage(global_string_buff1);
+			break;
+
+		case YM_STX:
+			rx_packet_size = YM_PACKET_1K_SIZE;
+			sprintf(global_string_buff1, "%s %d: rx_packet_size = YM_PACKET_1K_SIZE", __func__, __LINE__);
+			Buffer_NewMessage(global_string_buff1);
+			break;
+
+		case YM_EOT:
+			/* ok */
+			sprintf(global_string_buff1, "%s %d: YM_EOT - ok", __func__, __LINE__);
+			Buffer_NewMessage(global_string_buff1);
+			return 0;
+
+		case YM_CAN:
+			c = __ym_getchar(timeout_ms);
+			
+			if (c == YM_CAN)
+			{
+				*rxlen = -1;
+				/* ok */
+				sprintf(global_string_buff1, "%s %d: YM_CAN - ok", __func__, __LINE__);
+				Buffer_NewMessage(global_string_buff1);
+				return 0;
+			}
+			/* fall-through */
+
+		case YM_CRC:
+		
+			if (packets_rxed == 0)
+			{
+				/* could be start condition, first byte */
+				sprintf(global_string_buff1, "%s %d: could be start condition, first byte", __func__, __LINE__);
+				Buffer_NewMessage(global_string_buff1);
+				return 1;
+			}
+			/* fall-through */
+
+		case YM_ABT1:
+		case YM_ABT2:
+			/* User try abort, 'A' or 'a' received */
+			sprintf(global_string_buff1, "%s %d: User try abort c='%c'", __func__, __LINE__, c);
+			Buffer_NewMessage(global_string_buff1);
+			return 1;
+
+		default:
+			/* This case could be the result of corruption on the first octet
+			of the packet, but it's more likely that it's the user banging
+			on the terminal trying to abort a transfer. Technically, the
+			former case deserves a NAK, but for now we'll just treat this
+			as an abort case. */
+			*rxlen = -1;
+			sprintf(global_string_buff1, "%s %d: corruption on the first octet? c=%i '%c'", __func__, __LINE__, c, c);
+			Buffer_NewMessage(global_string_buff1);
+			return 0;
+	}
+
+// 	sprintf(global_string_buff1, "%s %d: past switch", __func__, __LINE__);
+// 	Buffer_NewMessage(global_string_buff1);
+// General_DelayTicks(1000);  
+
+	/* store data RXed */
+	*rxdata = (uint8_t)c;
+	
+	uint16_t i;
   
-  /* store data RXed */
-  *rxdata = (uint8_t)c;
+	for (i = 1; i < (rx_packet_size + YM_PACKET_OVERHEAD); i++)
+	{
+		c = __ym_getchar(timeout_ms);
+		
+		if (c < 0)
+		{
+			/* end of stream */
+				//sprintf(global_string_buff1, "%s %d: end of stream; i=%lu, c=%lu, rxdata='%s'", __func__, __LINE__, i, c, rxdata);
+				sprintf(global_string_buff1, "%s %d: end of stream; i=%u, c=%i", __func__, __LINE__, i, c);
+				Buffer_NewMessage(global_string_buff1);
+				General_DelayTicks(200);  
+			return -1;
+		}
+		
+		/* store data RXed */
+		rxdata[i] = (uint8_t)c;
+	}
+
+	//sprintf(global_string_buff1, "%s %d: packet read; i=%lu, rxdata='%s'", __func__, __LINE__, i, rxdata);
+	sprintf(global_string_buff1, "%s %d: packet read; i=%u", __func__, __LINE__, i);
+	Buffer_NewMessage(global_string_buff1);
+	General_DelayTicks(1000);   
+
+	// just a sanity check on the sequence number/complement value. caller should check for in-order arrival.
+	uint8_t seq_nbr = (rxdata[YM_PACKET_SEQNO_INDEX] & 0xff);
+	uint8_t seq_cmp = ((rxdata[YM_PACKET_SEQNO_COMP_INDEX] ^ 0xff) & 0xff);
+
+	if (seq_nbr != seq_cmp)
+	{
+		/* seq nbr error */
+			sprintf(global_string_buff1, "%s %d: seq nbr error (%x, %x)", __func__, __LINE__, seq_nbr, seq_cmp);
+			Buffer_NewMessage(global_string_buff1);
+		//return 1;
+	}
   
-  uint32_t i;
-  for (i = 1; i < (rx_packet_size + YM_PACKET_OVERHEAD); i++) {
-    c = __ym_getchar(timeout_ms);
-    if (c < 0) {
-      /* end of stream */
-      return -1;
-    }
-    /* store data RXed */
-    rxdata[i] = (uint8_t)c;
-  }
-  
-  /* just a sanity check on the sequence number/complement value.
-     caller should check for in-order arrival. */
-  uint8_t seq_nbr = (rxdata[YM_PACKET_SEQNO_INDEX] & 0xff);
-  uint8_t seq_cmp = ((rxdata[YM_PACKET_SEQNO_COMP_INDEX] ^ 0xff) & 0xff);
-  if (seq_nbr != seq_cmp) {
-    /* seq nbr error */
-    return 1;
-  }
-  
-  /* check CRC16 match */
-  uint16_t crc16_val = ym_crc16((const unsigned char *)(rxdata + YM_PACKET_HEADER),
-                                rx_packet_size + YM_PACKET_TRAILER);
-  if (crc16_val) {
-    /* CRC error, non zero */
-    return 1;
-  }
-  *rxlen = rx_packet_size;
-  /* success */
-  return 0;
+	/* check CRC16 match */
+	uint16_t crc16_val = ym_crc16((const unsigned char *)(rxdata + YM_PACKET_HEADER), rx_packet_size + YM_PACKET_TRAILER);
+
+// 	if (crc16_val)
+// 	{
+// 		/* CRC error, non zero */
+// 			//sprintf(global_string_buff1, "%s %d: CRC error, non zero; rxdata='%s'", __func__, __LINE__, rxdata);
+// 			sprintf(global_string_buff1, "%s %d: CRC error, non zero", __func__, __LINE__);
+// 			Buffer_NewMessage(global_string_buff1);
+// 		return 1;
+// 	}
+
+	*rxlen = rx_packet_size;
+	/* success */
+		//sprintf(global_string_buff1, "%s %d: success; rxdata='%s'", __func__, __LINE__, rxdata);
+		sprintf(global_string_buff1, "%s %d: success", __func__, __LINE__);
+		Buffer_NewMessage(global_string_buff1);
+	return 0;
 }
 
 /* ------------------------------------------------- */
@@ -261,168 +320,240 @@ static int32_t ym_rx_packet(uint8_t *rxdata,
  */
 int32_t fymodem_receive(uint8_t *rxdata,
                         size_t rxlen,
-                        char filename[FYMODEM_FILE_NAME_MAX_LENGTH])
+                        char** fname_ptp
+                        )
 {
-  /* alloc 1k on stack, ok? */
-  uint8_t rx_packet_data[YM_PACKET_1K_SIZE + YM_PACKET_OVERHEAD];
-  int32_t rx_packet_len;
+	/* alloc 1k on stack, ok? */
+	uint8_t rx_packet_data[YM_PACKET_1K_SIZE + YM_PACKET_OVERHEAD];
+	int16_t rx_packet_len;
+	
+	uint8_t filesize_asc[YM_FILE_SIZE_LENGTH];
+	uint32_t filesize = 0;
 
-  uint8_t filesize_asc[YM_FILE_SIZE_LENGTH];
-  uint32_t filesize = 0;
+	//char filename[FYMODEM_FILE_NAME_MAX_LENGTH];
+	
+	bool first_try = true;
+	bool session_done = false;
+	
+	uint32_t nbr_errors = 0;
 
-  bool first_try = true;
-  bool session_done = false;
+	sprintf(global_string_buff1, "%s %d: starting...", __func__, __LINE__);
+	Buffer_NewMessage(global_string_buff1);
 
-  uint32_t nbr_errors = 0;
-
-  /* z-term string */
-  filename[0] = 0;
+	/* z-term string */
+	//filename[0] = 0;
+	*(fname_ptp)[0] = 0;
   
-  /* receive files */
-  do { /* ! session done */
-    if (first_try) {
-      /* initiate transfer */
-      __ym_putchar(YM_CRC);
-    }
-    first_try = false;
+	/* receive files */
+	do
+	{ /* ! session done */
+	
+		if (first_try) 
+		{
+		  /* initiate transfer */
+		  __ym_putchar(YM_CRC);
+		}
+		first_try = false;
+	
+		bool crc_nak = true;
+		bool file_done = false;
+		uint32_t packets_rxed = 0;
+	
+		/* set start position of rxing data */
+		uint8_t *rxptr = rxdata;
+		
+		do
+		{ /* ! file_done */
+			/* receive packets */
+			int16_t res = ym_rx_packet(rx_packet_data,  &rx_packet_len,  packets_rxed, YM_PACKET_RX_TIMEOUT_MS);
+			
+			switch (res) 
+			{
+				case 0: 
+				{
+					/* packet received, clear packet error counter */
+					nbr_errors = 0;
+		
+					switch (rx_packet_len)
+					{
+						case -1:
+						{
+							/* aborted by sender */
+							__ym_putchar(YM_ACK);
+							//sprintf(global_string_buff1, "%s %d: aborted by sender. data='%s'", __func__, __LINE__, rx_packet_data);
+							sprintf(global_string_buff1, "%s %d: aborted by sender.", __func__, __LINE__);
+							Buffer_NewMessage(global_string_buff1);
+							return 0;						
+						}
+	
+						case 0: 
+						{
+							/* EOT - End Of Transmission */
+							__ym_putchar(YM_ACK);
+							/* TODO: Add some sort of sanity check on the number of
+							packets received and the advertised file length. */
+							file_done = true;
+							sprintf(global_string_buff1, "%s %d: file_done", __func__, __LINE__);
+							Buffer_NewMessage(global_string_buff1);
+							/* resend CRC to re-initiate transfer */
+							__ym_putchar(YM_CRC);
+							break;						
+						}
+	
+						default: 
+						{
+							/* normal packet, check seq nbr */
+							//sprintf(global_string_buff1, "%s %d: normal packet, check seq nbr. data='%s'", __func__, __LINE__, rx_packet_data);
+							sprintf(global_string_buff1, "%s %d: normal packet, check seq nbr.", __func__, __LINE__);
+							Buffer_NewMessage(global_string_buff1);
 
-    bool crc_nak = true;
-    bool file_done = false;
-    uint32_t packets_rxed = 0;
+							uint8_t seq_nbr = rx_packet_data[YM_PACKET_SEQNO_INDEX];
+							
+							if (seq_nbr != (packets_rxed & 0xff)) 
+							{
+								/* wrong seq number */
+								sprintf(global_string_buff1, "%s %d: wrong seq number: %d vs %d", __func__, __LINE__, seq_nbr, packets_rxed & 0xff);
+								Buffer_NewMessage(global_string_buff1);
+								__ym_putchar(YM_NAK);
+							} 
+							else
+							{
+								if (packets_rxed == 0)
+								{
+									/* The spec suggests that the whole data section should
+									be zeroed, but some senders might not do this.
+									If we have a NULL filename and the first few digits of
+									the file length are zero, then call it empty. */
+									int32_t i;
+									
+									for (i = YM_PACKET_HEADER; i < YM_PACKET_HEADER + 4; i++)
+									{
+										if (rx_packet_data[i] != 0)
+										{
+											break;
+										}
+									}
+						
+									/* non-zero bytes found in header, filename packet has data */
+									if (i < YM_PACKET_HEADER + 4)
+									{
+										/* read file name */
+										uint8_t *file_ptr = (uint8_t*)(rx_packet_data + YM_PACKET_HEADER);
+										i = 0;
+										
+										while ((*file_ptr != '\0') && (i < FYMODEM_FILE_NAME_MAX_LENGTH))
+										{
+											*(fname_ptp)[i++] = *file_ptr++;
+										}
+										
+										*(fname_ptp)[i++] = '\0';
+										/* skip null term char */
+										file_ptr++;
+										/* read file size */
+										i = 0;
+										
+										while ((*file_ptr != '\0') && (*file_ptr != ' ') && (i < YM_FILE_SIZE_LENGTH))
+										{
+											filesize_asc[i++] = *file_ptr++;
+										}
+							
+										filesize_asc[i++] = '\0';
+										/* convert file size */
+										ym_readU32(filesize_asc, &filesize);
+										
+										/* check file size */
+										if (filesize > rxlen)
+										{
+											YM_ERR("YM: RX buffer too small (0x%08x vs 0x%08x)\n", (unsigned int)rxlen, (unsigned int)filesize);
+											goto rx_err_handler;
+											sprintf(global_string_buff1, "%s %d: RX buffer too small (0x%08x vs 0x%08x)", __func__, __LINE__, (unsigned int)rxlen, (unsigned int)filesize);
+											Buffer_NewMessage(global_string_buff1);
+										}
+										__ym_putchar(YM_ACK);
+										__ym_putchar(crc_nak ? YM_CRC : YM_NAK);
+										crc_nak = false;
+									}
+									else
+									{
+										/* filename packet is empty, end session */
+										__ym_putchar(YM_ACK);
+										file_done = true;
+										session_done = true;
+										break;
+									}
+								}
+								else
+								{
+									/* This shouldn't happen, but we check anyway in case the
+									sender sent wrong info in its filename packet */
 
-    /* set start position of rxing data */
-    uint8_t *rxptr = rxdata;
-    do { /* ! file_done */
-      /* receive packets */
-      int32_t res = ym_rx_packet(rx_packet_data,
-                                 &rx_packet_len,
-                                 packets_rxed,
-                                 YM_PACKET_RX_TIMEOUT_MS);
-      switch (res) {
-      case 0: {
-        /* packet received, clear packet error counter */
-        nbr_errors = 0;
-        switch (rx_packet_len) {
-        case -1: {
-          /* aborted by sender */
-          __ym_putchar(YM_ACK);
-          return 0;
-        }
-        case 0: {
-          /* EOT - End Of Transmission */
-          __ym_putchar(YM_ACK);
-          /* TODO: Add some sort of sanity check on the number of
-             packets received and the advertised file length. */
-          file_done = true;
-          /* resend CRC to re-initiate transfer */
-          __ym_putchar(YM_CRC);
-          break;
-        }
-        default: {
-          /* normal packet, check seq nbr */
-          uint8_t seq_nbr = rx_packet_data[YM_PACKET_SEQNO_INDEX];
-          if (seq_nbr != (packets_rxed & 0xff)) {
-            /* wrong seq number */
-            __ym_putchar(YM_NAK);
-          } else {
-            if (packets_rxed == 0) {
-              /* The spec suggests that the whole data section should
-                 be zeroed, but some senders might not do this.
-                 If we have a NULL filename and the first few digits of
-                 the file length are zero, then call it empty. */
-              int32_t i;
-              for (i = YM_PACKET_HEADER; i < YM_PACKET_HEADER + 4; i++) {
-                if (rx_packet_data[i] != 0) {
-                  break;
-                }
-              }
-              /* non-zero bytes found in header, filename packet has data */
-              if (i < YM_PACKET_HEADER + 4) {
-                /* read file name */
-                uint8_t *file_ptr = (uint8_t*)(rx_packet_data + YM_PACKET_HEADER);
-                i = 0;
-                while ((*file_ptr != '\0') &&
-                       (i < FYMODEM_FILE_NAME_MAX_LENGTH)) {
-                  filename[i++] = *file_ptr++;
-                }
-                filename[i++] = '\0';
-                /* skip null term char */
-                file_ptr++;
-                /* read file size */
-                i = 0;
-                while ((*file_ptr != '\0') &&
-                       (*file_ptr != ' ')  &&
-                       (i < YM_FILE_SIZE_LENGTH)) {
-                  filesize_asc[i++] = *file_ptr++;
-                }
-                filesize_asc[i++] = '\0';
-                /* convert file size */
-                ym_readU32(filesize_asc, &filesize);
-                /* check file size */
-                if (filesize > rxlen) {
-                  YM_ERR("YM: RX buffer too small (0x%08x vs 0x%08x)\n", (unsigned int)rxlen, (unsigned int)filesize);
-                  goto rx_err_handler;
-                }
-                __ym_putchar(YM_ACK);
-                __ym_putchar(crc_nak ? YM_CRC : YM_NAK);
-                crc_nak = false;
-              }
-              else {
-                /* filename packet is empty, end session */
-                __ym_putchar(YM_ACK);
-                file_done = true;
-                session_done = true;
-                break;
-              }
-            }
-            else {
-              /* This shouldn't happen, but we check anyway in case the
-                 sender sent wrong info in its filename packet */
-              if (((rxptr + rx_packet_len) - rxdata) > (int32_t)rxlen) {
-                YM_ERR("YM: RX buffer overflow (exceeded 0x%08x)\n", (unsigned int)rxlen);
-                goto rx_err_handler;
-              }
-              int32_t i;
-              for (i = 0; i < rx_packet_len; i++) {
-                rxptr[i] = rx_packet_data[YM_PACKET_HEADER + i];
-              }
-              rxptr += rx_packet_len;
-              __ym_putchar(YM_ACK);
-            }
-            packets_rxed++;
-          }  /* sequence number check ok */
-        } /* default */
-        } /* inner switch */
-        break;
-      } /* case 0 */
-      default: {
-        /* ym_rx_packet() returned error */
-        if (packets_rxed > 0) {
-          nbr_errors++;
-          if (nbr_errors >= YM_PACKET_ERROR_MAX_NBR) {
-            YM_ERR("YM: RX errors too many: %d - ABORT.\n", (unsigned int)nbr_errors);
-            goto rx_err_handler;
-          }
-        }
-        __ym_putchar(YM_CRC);
-        break;
-      } /* default */
-      } /* switch */
-      
-      /* check end of receive packets */
-    } while (! file_done);
+									sprintf(global_string_buff1, "%s %d: sender sent wrong info in its filename packet?", __func__, __LINE__);
+									Buffer_NewMessage(global_string_buff1);
+								
+									if (((rxptr + rx_packet_len) - rxdata) > (int32_t)rxlen)
+									{
+										YM_ERR("YM: RX buffer overflow (exceeded 0x%08x)\n", (unsigned int)rxlen);
+											sprintf(global_string_buff1, "%s %d: RX buffer overflow (exceeded 0x%08x)", __func__, __LINE__, (unsigned int)rxlen);
+											Buffer_NewMessage(global_string_buff1);
+										goto rx_err_handler;
+									}
+									
+									int32_t i;
+									
+									for (i = 0; i < rx_packet_len; i++)
+									{
+										rxptr[i] = rx_packet_data[YM_PACKET_HEADER + i];
+									}
+									
+									rxptr += rx_packet_len;
+									__ym_putchar(YM_ACK);
+								}
+								packets_rxed++;
+							}  /* sequence number check ok */
+						
+						} /* default */
+					} /* inner switch */
+					break;
+				} /* case 0 */
 
-    /* check end of receive files */
-  } while (! session_done);
+				default:
+				{
+					/* ym_rx_packet() returned error */
+							//sprintf(global_string_buff1, "%s %d: ym_rx_packet() returned error. data='%s'", __func__, __LINE__, rx_packet_data);
+							sprintf(global_string_buff1, "%s %d: ym_rx_packet() returned error (res=%d)", __func__, __LINE__, res);
+							Buffer_NewMessage(global_string_buff1);
+							
+					if (packets_rxed > 0)
+					{
+						nbr_errors++;
+						
+						if (nbr_errors >= YM_PACKET_ERROR_MAX_NBR)
+						{
+							YM_ERR("YM: RX errors too many: %d - ABORT.\n", (unsigned int)nbr_errors);
+							goto rx_err_handler;
+						}
+					}
+					__ym_putchar(YM_CRC);
+					break;
+				} /* default */
+			} /* switch */
+			
+			/* check end of receive packets */
+		} while (! file_done);
+	
+		/* check end of receive files */
+	} while (! session_done);
 
   /* return bytes received */
   return filesize;
 
- rx_err_handler:
-  __ym_putchar(YM_CAN);
-  __ym_putchar(YM_CAN);
-  __ym_sleep_ms(1000);
-  return 0;
+rx_err_handler:
+	__ym_putchar(YM_CAN);
+	__ym_putchar(YM_CAN);
+	__ym_sleep_ms(1000);
+	sprintf(global_string_buff1, "%s %d: error", __func__, __LINE__);
+	Buffer_NewMessage(global_string_buff1);
+	return 0;
 }
 
 /* ------------------------------------ */

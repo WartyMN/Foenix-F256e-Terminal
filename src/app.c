@@ -61,7 +61,8 @@
 #define ACTION_SELECT_FONT_ANSI	(CH_LC_A + CH_ALT_OFFSET)	// alt-a
 #define ACTION_SELECT_FONT_IBM	(CH_LC_I + CH_ALT_OFFSET)	// alt-i
 #define ACTION_SET_TIME			(CH_LC_T + CH_ALT_OFFSET)	// alt-t
-#define ACTION_ABORT_SESSION	(CH_ESC + CH_ALT_OFFSET)	// alt-ESC
+//#define ACTION_RECEIVE_YMODEM	(CH_LC_Y + CH_ALT_OFFSET)	// alt-y
+//#define ACTION_ABORT_SESSION	(CH_ESC + CH_ALT_OFFSET)	// alt-ESC
 #define ACTION_SET_BAUD_300		(CH_1 + CH_ALT_OFFSET)	// alt-1
 #define ACTION_SET_BAUD_1200	(CH_2 + CH_ALT_OFFSET)	// alt-2
 #define ACTION_SET_BAUD_2400	(CH_3 + CH_ALT_OFFSET)	// alt-3
@@ -479,6 +480,11 @@ void App_MainLoop(void)
 				{
 					Serial_CycleForegroundColor();
 				}
+// 				else if (user_input == ACTION_RECEIVE_YMODEM)
+// 				{
+// 					Buffer_NewMessage("Starting YModem receive...");
+// 					Serial_StartYModemReceive();
+// 				}
 				else if (user_input == ACTION_SET_TIME)
 				{
 					General_Strlcpy((char*)&global_dlg_title, General_GetString(ID_STR_DLG_SET_CLOCK_TITLE), COMM_BUFFER_MAX_STRING_LEN);
@@ -505,11 +511,21 @@ void App_MainLoop(void)
 						Buffer_NewMessage(General_GetString(ID_STR_ERROR_GENERIC_DISK));
 					}
 				}
+// 2024/08/02 MB: did not succeed in getting either of the below approaches to work. the +++ATH thing definitely ruins the call, but modem still says connected.
 // 				else if (user_input == ACTION_ABORT_SESSION)
 // 				{
 // 					// user wants to abort connection. 
 // 					// TODO: confirm with dialog
-// 					// TODO: perform hang up action
+// 
+// 					// hang up by dropping DTR for at least 2 seconds
+// 					//sprintf(global_string_buff1, "trying to hang up. DTR=%x, will be=%x", R8(UART_MCR), R8(UART_MCR) | FLAG_UART_MCR_DTR);
+// 					sprintf(global_string_buff1, "trying to hang up...");
+// 					Buffer_NewMessage(global_string_buff1);
+// 					//R8(UART_MCR) = R8(UART_MCR) | FLAG_UART_MCR_DTR;
+// 
+// 					sprintf(global_string_buff1, "%s%c", (char*)"+++ATH", 13);	// needs return for modem to see it.
+// 					Serial_SendData((uint8_t*)global_string_buff1, 7);	// then need to wait for "OK", then send "ATH"
+// 
 // 					return;
 // 				}
 				else

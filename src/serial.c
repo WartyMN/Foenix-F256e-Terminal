@@ -24,6 +24,7 @@
 #include "strings.h"
 #include "sys.h"
 #include "text.h"
+#include "ymodem.h"
 
 // C includes
 #include <stdint.h>
@@ -77,6 +78,8 @@
 /*****************************************************************************/
 /*                          File-scoped Variables                            */
 /*****************************************************************************/
+
+//static uint8_t					serial_ymodem_buffer[18000];
 
 static uint8_t			ansi_sequence_storage[ANSI_MAX_SEQUENCE_LEN + 1];
 static uint8_t*			ansi_sequence = ansi_sequence_storage;
@@ -1211,32 +1214,36 @@ bool Serial_ProcessAvailableData(void)
 }
 
 
-// get a single byte from UART serial connection
-// returns -1 if no byte was received before specified timeout period passes
-int16_t Serial_GetByte(int32_t the_timeout)
-{
-	bool		data_available = false;
-	int16_t		the_byte = -1;
-	uint32_t	iiii;
-
-	for (iiii = 0; iiii < the_timeout; iiii++)
-	{
-		if ( global_uart_read_idx != global_uart_write_idx )
-		{
-			// at least 1 byte available in buffer
-			the_byte = (int16_t)global_uart_in_buffer[global_uart_read_idx++];
-			
-			if (global_uart_read_idx > UART_BUFFER_SIZE)
-			{
-				global_uart_read_idx = 0;
-			}
-
-			break;
-		}		
-	}
-	
-	return the_byte;
-}
+// // get a single byte from UART serial connection
+// // returns -1 if no byte was received before specified timeout period passes
+// int16_t Serial_GetByte(int32_t the_timeout)
+// {
+// 	int16_t		the_byte = -1;
+// 	uint32_t	iiii;
+// 
+// 	for (iiii = 0; iiii < the_timeout; iiii++)
+// 	{
+// 		if (global_uart_read_idx == global_uart_write_idx)
+// 		{
+// 			// nothing in receive buffer
+// 			General_DelayTicks(300);
+// 		}
+// 		else
+// 		{
+// 			// at least 1 byte available in buffer
+// 			the_byte = (int16_t)global_uart_in_buffer[global_uart_read_idx++];
+// 			
+// 			if (global_uart_read_idx > UART_BUFFER_SIZE)
+// 			{
+// 				global_uart_read_idx = 0;
+// 			}
+// 
+// 			return the_byte;
+// 		}
+// 	}
+// 	
+// 	return the_byte;
+// }
 
 
 // flush the in (Rx) buffer
@@ -1278,6 +1285,71 @@ void Serial_CycleForegroundColor(void)
 	Text_FillBoxAttrOnly(TERM_BODY_X1, TERM_BODY_Y1, TERM_BODY_X2, TERM_BODY_Y2, serial_current_pref_color, COLOR_BLACK);
 	serial_fg_color = serial_current_pref_color;
 }
+
+
+// // start YMODEM file receive
+// bool Serial_StartYModemReceive(void)
+// {
+// 	int32_t		bytes_received;
+// //	uint8_t		temp_buffer[18000];
+// 	char		fname[92];
+// 	char*		the_filename = fname;
+// 	size_t		length = 18000;
+// 	uint32_t	i = 0;
+// 	FRESULT				the_result;
+// 	FIL					the_target_handle;
+// 	unsigned int		s_bytes_written_to_disk = 0;
+// 	char				temp_path_buffer[32];
+// 	
+// 	while (i < sizeof(fname)) { fname[i++] = '\0'; }
+// 	
+// 	sprintf(fname, "%s", "test.txt");
+// 	
+// 	bytes_received = fymodem_receive((uint8_t *)serial_ymodem_buffer, length, &the_filename);
+// 	sprintf(global_string_buff1, "ymodem done, bytes_received=%lu", bytes_received);
+// 	Buffer_NewMessage(global_string_buff1);
+// 	
+// 	if (bytes_received > 0)
+// 	{
+// 		General_CreateFilePathFromFolderAndFile(temp_path_buffer, "0:", the_filename);
+// 		Buffer_NewMessage(temp_path_buffer);
+// 	
+// 		// Get a target file handle for Writing
+// 		the_result = f_open(&the_target_handle, temp_path_buffer, FA_WRITE | FA_CREATE_ALWAYS);
+// 		
+// 		if (the_result != FR_OK)
+// 		{
+// 			//sprintf(global_string_buff1, "file '%s' could not be opened for copying into", the_target_file_path);
+// 			//Buffer_NewMessage(global_string_buff1);
+// 			return false;
+// 		}
+// 	
+// 		the_result = f_write(&the_target_handle, serial_ymodem_buffer, bytes_received, &s_bytes_written_to_disk);
+// 	
+// 		if (the_result != FR_OK)
+// 		{
+// 			//sprintf(global_string_buff1, "file '%s': got error writing", the_target_file_path);
+// 			//Buffer_NewMessage(global_string_buff1);
+// 			f_close(&the_target_handle);
+// 			return false;
+// 		}
+// 		
+// 		if ( s_bytes_written_to_disk < bytes_received )
+// 		{
+// 			// error or disk full
+// 			//sprintf(global_string_buff1, "%s %d: file '%s': tried to write %d, only wrote %d", __func__ , __LINE__, the_target_file_path, s_bytes_read_from_disk, s_bytes_written_to_disk);
+// 			//Buffer_NewMessage(global_string_buff1);
+// 			f_close(&the_target_handle);
+// 			return false;
+// 		}				
+// 		
+// 		f_close(&the_target_handle);
+// 			
+// 	}
+// 	
+// 	return bytes_received;
+// }
+
 
 
 // debug function - dump serial buffer to disk
