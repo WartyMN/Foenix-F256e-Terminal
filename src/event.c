@@ -683,8 +683,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 					#endif
 						// switch to font set #2, which has JA font loaded
-						R8(VICKY_MASTER_CTRL_REG_H) = (VICKY_RES_FON_SET);
-
+						R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) | VICKY_RES_FON_SET;
 						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = kbd_kana_mode_label[0];
 						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = kbd_kana_mode_label[1];
 					}
@@ -697,7 +696,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_STD_LED_R;
 					#endif
 						// make sure we are using font #1, not #2, which has JA font loaded
-						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 						
 						// for STD mode, only turn on LED if capslock mode is actually active
 						if (kbd_capslock_status == true)
@@ -721,7 +720,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 					#endif
 						// make sure we are using font #1, not #2, which has JA font loaded
-						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
 						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
 					}
@@ -735,7 +734,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 					#endif
 						// make sure we are using font #1, not #2, which has JA font loaded
-						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
 						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
 					}
@@ -749,7 +748,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 						R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 					#endif
 						// make sure we are using font #1, not #2, which has JA font loaded
-						R8(VICKY_MASTER_CTRL_REG_H) = 0;
+						R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 						//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 'C';	// C=. Maybe [F] box better?
 						//R8(KEYBOARD_MODE_VRAM_LOC + 1) = '=';	//
 					}
@@ -1097,8 +1096,8 @@ void Event_ProcessF256KKeyboardInterrupt(void)
 								R8(LED_CAPSLOCK_RED) = KBD_MAP_KANA_LED_R;
 								R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 								// switch to font set #2, which has JA font loaded
-								R8(VICKY_MASTER_CTRL_REG_H) = (VICKY_RES_FON_SET);
-
+								R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) | VICKY_RES_FON_SET;
+								
 								//R8(KEYBOARD_MODE_VRAM_LOC + 0) = kbd_kana_mode_label[0];
 								//R8(KEYBOARD_MODE_VRAM_LOC + 1) = kbd_kana_mode_label[1];
 							}
@@ -1109,7 +1108,7 @@ void Event_ProcessF256KKeyboardInterrupt(void)
 								R8(LED_CAPSLOCK_GREEN) = KBD_MAP_STD_LED_G;
 								R8(LED_CAPSLOCK_RED) = KBD_MAP_STD_LED_R;
 								// make sure we are using font #1, not #2, which has JA font loaded
-								R8(VICKY_MASTER_CTRL_REG_H) = 0;
+								R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 								
 								// for STD mode, only turn on LED if capslock mode is actually active
 								if (kbd_capslock_status == true)
@@ -1131,7 +1130,7 @@ void Event_ProcessF256KKeyboardInterrupt(void)
 								R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_1_LED_R;
 								R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 								// make sure we are using font #1, not #2, which has JA font loaded
-								R8(VICKY_MASTER_CTRL_REG_H) = 0;
+								R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 								//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
 								//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
 							}
@@ -1143,7 +1142,7 @@ void Event_ProcessF256KKeyboardInterrupt(void)
 								R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_2_LED_R;
 								R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 								// make sure we are using font #1, not #2, which has JA font loaded
-								R8(VICKY_MASTER_CTRL_REG_H) = 0;
+								R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 								//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 0x07;	// inverse space
 								//R8(KEYBOARD_MODE_VRAM_LOC + 1) = CH_MISC_FOENIX;
 							}
@@ -1155,7 +1154,7 @@ void Event_ProcessF256KKeyboardInterrupt(void)
 								R8(LED_CAPSLOCK_RED) = KBD_MAP_PETSCII_LED_R;
 								R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
 								// make sure we are using font #1, not #2, which has JA font loaded
-								R8(VICKY_MASTER_CTRL_REG_H) = 0;
+								R8(VICKY_MASTER_CTRL_REG_H) = R8(VICKY_MASTER_CTRL_REG_H) & ~VICKY_RES_FON_SET;
 								//R8(KEYBOARD_MODE_VRAM_LOC + 0) = 'C';	// C=. Maybe [F] box better?
 								//R8(KEYBOARD_MODE_VRAM_LOC + 1) = '=';	//
 							}
