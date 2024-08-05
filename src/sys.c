@@ -509,7 +509,7 @@ bool Sys_AutoConfigure(void)
 		case MACHINE_F256KE:
 		case MACHINE_F256K2E:
 			// if machine with built-in keyboard, need to initialize it.
-			#ifdef _F256K_
+			#if defined _F256K_ || defined _F256K2_
 				// get the built-in keyboard on the F256K ready
 				Event_InitalizeKeyboard256K();
 			#endif

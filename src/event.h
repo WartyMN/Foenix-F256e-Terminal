@@ -353,7 +353,7 @@ EventRecord* EventManager_NextEvent(void);
 void EventManager_AddEvent(event_kind the_what, uint8_t the_raw_code,  uint8_t the_mapped_code, event_modifiers the_modifiers);
 
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 	// get the built-in keyboard on the F256K ready
 	void Event_InitalizeKeyboard256K(void);

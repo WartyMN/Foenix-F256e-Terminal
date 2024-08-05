@@ -94,7 +94,7 @@
 #define KBD_INT_QUEUE_SIZE			256		//! waste bytes on this, but this way a uint8_t will roll over without math in the IRQ handler. 
 
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 	#define KBD_MATRIX_SIZE		9
 	#define KBD_COLUMNS			9
@@ -339,7 +339,7 @@ const static uint8_t action_key_maps[NUM_ACTION_KEY_MAP_BYTES] =
 // uint8_t		event_key_queue_write_idx;
 // uint8_t		event_key_queue_read_idx;
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 	bool			kbd_initialized = false;
 
@@ -399,7 +399,7 @@ static void Event_SetNull(EventRecord* the_event);
 // Process one key action from the interrupt, convert raw code, and turn it into an event
 void Event_ProcessPS2KeyboardInterrupt(void);
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 	// Process one key action from the F256K buil-in keyboard, convert raw code, and turn it into an event
 	void Event_ProcessF256KKeyboardInterrupt(void);
@@ -573,7 +573,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 								{
 									kbd_capslock_status = true;
 									
-								#ifdef _F256K_
+								#if defined _F256K_ || defined _F256K2_
 									if (kbd_map_mode == KEY_SETMAP_STD)
 									{
 										R8(SYS0_REG) = R8(SYS0_REG) | FLAG_SYS0_REG_W_CAP_EN;
@@ -584,7 +584,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 								{
 									kbd_capslock_status = false;
 									
-								#ifdef _F256K_
+								#if defined _F256K_ || defined _F256K2_
 									if (kbd_map_mode == KEY_SETMAP_STD)
 									{
 										R8(SYS0_REG) = R8(SYS0_REG) & (0xff - FLAG_SYS0_REG_W_CAP_EN);
@@ -676,7 +676,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					if (kbd_temp_char == KEY_SETMAP_KANA && modifier_keys_pressed[KEY_UNIFIED_META])
 					{
 						kbd_map_mode = KEY_SETMAP_KANA;
-					#ifdef _F256K_
+					#if defined _F256K_ || defined _F256K2_
 						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_KANA_LED_B;
 						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_KANA_LED_G;
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_KANA_LED_R;
@@ -690,7 +690,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					else if (kbd_temp_char == KEY_SETMAP_STD && modifier_keys_pressed[KEY_UNIFIED_META])
 					{
 						kbd_map_mode = KEY_SETMAP_STD;
-					#ifdef _F256K_
+					#if defined _F256K_ || defined _F256K2_
 						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_STD_LED_B;
 						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_STD_LED_G;
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_STD_LED_R;
@@ -713,7 +713,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					else if (kbd_temp_char == KEY_SETMAP_FOENISCII_1 && modifier_keys_pressed[KEY_UNIFIED_META])
 					{
 						kbd_map_mode = KEY_SETMAP_FOENISCII_1;
-					#ifdef _F256K_
+					#if defined _F256K_ || defined _F256K2_
 						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_FOENISCII_1_LED_B;
 						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_FOENISCII_1_LED_G;
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_1_LED_R;
@@ -727,7 +727,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					else if (kbd_temp_char == KEY_SETMAP_FOENISCII_2 && modifier_keys_pressed[KEY_UNIFIED_META])
 					{
 						kbd_map_mode = KEY_SETMAP_FOENISCII_2;
-					#ifdef _F256K_
+					#if defined _F256K_ || defined _F256K2_
 						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_FOENISCII_2_LED_B;
 						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_FOENISCII_2_LED_G;
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_FOENISCII_2_LED_R;
@@ -741,7 +741,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 					else if (kbd_temp_char == KEY_SETMAP_PETSCII && modifier_keys_pressed[KEY_UNIFIED_META])
 					{
 						kbd_map_mode = KEY_SETMAP_PETSCII;
-					#ifdef _F256K_
+					#if defined _F256K_ || defined _F256K2_
 						R8(LED_CAPSLOCK_BLUE) = KBD_MAP_PETSCII_LED_B;
 						R8(LED_CAPSLOCK_GREEN) = KBD_MAP_PETSCII_LED_G;
 						R8(LED_CAPSLOCK_RED) = KBD_MAP_PETSCII_LED_R;
@@ -878,7 +878,7 @@ void Event_ProcessPS2KeyboardInterrupt(void)
 }
 
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 // Process one key action from the F256K buil-in keyboard, convert raw code, and turn it into an event
 void Event_ProcessF256KKeyboardInterrupt(void)
@@ -1341,7 +1341,7 @@ __attribute__((interrupt(0xffea))) void nmi_handler()
 {
 	R8(VICKY_TEXT_CHAR_RAM + 4799) = R8(VICKY_TEXT_CHAR_RAM + 4799) + 1;
 
-	#ifdef _F256K_	
+	#if defined _F256K_ || defined _F256K2_	
 		// treat RESTORE key as '\' as it would be on a "normal" keyboard
 		// Event_ProcessF256KKeyboardInterrupt();
 		// no point in calling the F256K keyboard handler, as RESTORE isn't wired into the VIA
@@ -1415,7 +1415,7 @@ __attribute__((interrupt(0xffee))) void irq_handler()
 		{
 			// event was not PS/2. will assume it was SOF, and do an F256K keyboard check
 	
-			#ifdef _F256K_
+			#if defined _F256K_ || defined _F256K2_
 			
 				if ( (pending_int_value & JR0_INT00_SOF) != 0)
 				{
@@ -1816,7 +1816,7 @@ void EventManager_WaitForEvent(void)
 }
 
 
-#ifdef _F256K_
+#if defined _F256K_ || defined _F256K2_
 
 	// get the built-in keyboard on the F256K ready
 	void Event_InitalizeKeyboard256K(void)
