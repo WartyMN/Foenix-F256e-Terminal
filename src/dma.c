@@ -16,19 +16,12 @@
 
 // project includes
 #include "dma.h"
-
-#include "general.h"
 #include "memory.h"
-#include "sys.h"
-#include "text.h"
 
 // C includes
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Platform includes
 #include "f256_e.h"

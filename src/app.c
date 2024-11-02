@@ -17,17 +17,11 @@
 // project includes
 #include "app.h"
 #include "comm_buffer.h"
-#include "debug.h"
-#include "dma.h"
-#include "general.h"
-#include "keyboard.h"
 #include "memory.h"
-#include "text.h"
 #include "screen.h"
 #include "serial.h"
 #include "startup.h"
 #include "strings.h"
-#include "sys.h"
 
 // C includes
 #include <stdbool.h>
@@ -38,7 +32,6 @@
 
 // F256 includes
 #include "f256_e.h"
-#include "kernel.h"
 #include "ff.h"
 
 
@@ -82,6 +75,9 @@
 /*****************************************************************************/
 /*                          File-scoped Variables                            */
 /*****************************************************************************/
+
+static uint8_t				serial_temp;	// misc uses within serial interrupt
+static uint8_t				pending_int_value;
 
 static uint8_t				app_active_panel_id;	// PANEL_ID_LEFT or PANEL_ID_RIGHT
 static uint8_t				app_connected_drive_count;
@@ -148,10 +144,18 @@ const static char		app_font_ibm_ansi[] = {
 /*                             Global Variables                              */
 /*****************************************************************************/
 
+extern uint8_t*				global_uart_in_buffer;
+extern uint16_t				global_uart_write_idx;
+
 uint8_t					global_file_buffer_storage[STORAGE_FILE_BUFFER_LEN];
 uint8_t*				global_file_buffer = global_file_buffer_storage;
 
 extern System*			global_system;
+extern EventManager*	global_event_manager;
+
+#if defined _F256K_ || defined _F256K2_
+	extern bool			global_kbd_initialized;
+#endif
 
 bool					global_launcher_mode = false;
 ui_glyph_choice			global_ui_charset = UI_MODE_NOT_SET;
@@ -165,9 +169,6 @@ FATFS					global_ffs_device[DEVICE_MAX_FFS_DEVICE_COUNT];		// FFS objects for SD
 // char*					global_search_phrase = app_search_phrase_storage;
 // uint8_t					global_search_phrase_len;
 
-
-// char*					global_named_app_dos = "dos";
-// char*					global_named_app_basic = "basic";
 
 int8_t					global_connected_device[DEVICE_MAX_DEVICE_COUNT];	// will be 8, 9, etc, if connected, or -1 if not. 
 
@@ -207,13 +208,18 @@ uint8_t					temp_screen_buffer_char[APP_DIALOG_BUFF_SIZE];	// WARNING HBD: don't
 uint8_t					temp_screen_buffer_attr[APP_DIALOG_BUFF_SIZE];	// WARNING HBD: don't make dialog box bigger than will fit!
 
 
-
 /*****************************************************************************/
 /*                       Private Function Prototypes                         */
 /*****************************************************************************/
 
 // draw/refresh title bar and items that appear in the title bar
 void App_DrawTitleBar(void);
+
+// Switch font
+void App_ChangeUIFont(font_choice the_font);
+
+// display information about f/manager
+void App_ShowAppAboutInfo(void);
 
 // scan for connected devices, and return count. Returns -1 if error.
 int8_t App_ScanDevices(void);
@@ -285,6 +291,7 @@ void App_DrawTitleBar(void)
 }
 
 
+// Switch font
 void App_ChangeUIFont(font_choice the_font)
 {
 	global_font = the_font;
@@ -333,17 +340,47 @@ void App_ChangeUIFont(font_choice the_font)
 }
 
 
+// display information about f/manager
+void App_ShowAppAboutInfo(void)
+{
+	// show app name, version, and credit
+	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_THIS_APP), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
+	Buffer_NewMessage(global_string_buff1);
+	
+	// show machine name and type of keyboard
+	if (global_system->model_number_ == MACHINE_F256K2E)
+	{
+		if ((R8(OPT_KBD_STATUS) & FLAG_OPT_KBD_STAT_MECH) == 0)
+		{
+			sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_ABOUT_MACHINE_NAME_K2));
+		}
+		else
+		{
+			sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_ABOUT_MACHINE_NAME_K1_UPGRADE));
+		}
+	}
+	else if (global_system->model_number_ == MACHINE_F256KE)
+	{
+		sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_ABOUT_MACHINE_NAME_K1_E_FPGA));
+	}
+	else
+	{
+		sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_MACHINE_NAME_UNKNOWN), global_system->model_number_);
+	}
+	
+	Buffer_NewMessage(global_string_buff1);
+}
+
+
 // scan for connected devices, and return count. Returns -1 if error.
 int8_t	App_ScanDevices(void)
 {
 	uint8_t		drive_num = 0;
 	uint8_t		device;
-	DIR*		dir;
+// 	DIR*		dir;
 	char		drive_path[3];
 	char*		the_drive_path = drive_path;
 
-    FRESULT		result_ffs_sd0;
-    FRESULT		result_ffs_sd1;
 	FRESULT		the_result;
 	
 	// LOGIC: 
@@ -362,13 +399,41 @@ int8_t	App_ScanDevices(void)
 	{
 		sprintf(the_drive_path, "%u:", device);
 		the_result = f_mount(&global_ffs_device[device], the_drive_path, PARAM_MOUNT_IMMEDIATELY);
-		sprintf(global_string_buff1, "FFS mount attempt for %s: %d", the_drive_path, (int)the_result);
-		Buffer_NewMessage(global_string_buff1);
 
 		if (the_result == FR_OK)
 		{
 			app_connected_drive_count++;
 			global_connected_device[drive_num++] = device;
+			
+			if (device == 0 )
+			{
+				//if (global_system->model_number_ == MACHINE_F256K2E || global_system->model_number_ == MACHINE_F256KE)
+				//{
+					// K2 has 2 SD cards and K has only 1, but drive 0 is the external for both
+					sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_MSG_MOUNT_SUCCESS_SD0));
+				//}
+			}
+			else if (device == 1)
+			{
+				if (global_system->model_number_ == MACHINE_F256K2E)
+				{
+					// these machines have 2 SD cards
+					sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_MSG_MOUNT_SUCCESS_SD1_INTERNAL));
+				}
+				else
+				{
+					// in theory, this would be someone who changed their K1 to use the "E" fpga load if FRS makes that widely available
+					// these machines will only have 1 SD card
+					sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_MSG_MOUNT_SUCCESS_SD1_UNKNOWN));
+				}
+				
+			}
+			else
+			{
+				sprintf(global_string_buff1, "%s", Strings_GetString(ID_STR_MSG_MOUNT_SUCCESS_SD1_UNKNOWN));
+			}
+			
+			Buffer_NewMessage(global_string_buff1);
 		}
 		else
 		{
@@ -387,8 +452,6 @@ void App_Initialize(void)
 
 	Text_ClearScreen(APP_FOREGROUND_COLOR, APP_BACKGROUND_COLOR);
 	
-	Keyboard_InitiateMinuteHand();
-		
 	//global_ui_charset = UI_MODE_ANSI;		// default to using ANSI glyphs in UI
 	//global_ui_charset = UI_MODE_NOT_SET;
 	//global_font = FONT_STD_ANSI;			// default to foenix look ANSI font
@@ -401,8 +464,8 @@ void App_Initialize(void)
 	
 	Buffer_Clear();
 
-	// show info about the host F256 and environment, as well as copyright, version of f/manager
-	Screen_ShowAppAboutInfo();
+	// show info about the host F256 and environment, as well as copyright, version of this app
+	App_ShowAppAboutInfo();
 
 	// set up the dialog template we'll use throughout the app
 	global_dlg.title_text_ = global_dlg_title;
@@ -488,7 +551,7 @@ void App_MainLoop(void)
 					General_Strlcpy((char*)&global_dlg_body_msg, Strings_GetString(ID_STR_DLG_SET_CLOCK_BODY), APP_DIALOG_WIDTH);
 					global_string_buff2[0] = 0;	// clear whatever string had been in this buffer before
 					
-					success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, 14); //YY-MM-DD HH-MM = 14
+					success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, 14, APP_ACCENT_COLOR, APP_FOREGROUND_COLOR, APP_BACKGROUND_COLOR); //YY-MM-DD HH-MM = 14
 					
 					if (success)
 					{
@@ -578,10 +641,6 @@ void App_ExitStealthTextUpdateMode(void)
 /*****************************************************************************/
 
 
-
-
-
-
 // Draws the progress bar frame on the screen
 void App_ShowProgressBar(void)
 {
@@ -651,17 +710,15 @@ void App_DisplayTime(void)
 	//   I will use the real time clock to seed the number generator
 	//  The clock should only be visible and updated when the main 2-panel screen is displayed
 	
-	
-	uint8_t		old_rtc_control;
-	
 	if (global_clock_is_visible != true)
 	{
 		return;
 	}
-
+	
+	__asm("SEI"); // disable interrupts in case some other process has a role here
+	
 	// stop RTC from updating external registers. Required!
-	old_rtc_control = R8(RTC_CONTROL);
-	R8(RTC_CONTROL) = old_rtc_control | 0x08; // stop it from updating external registers
+	R8(RTC_CONTROL) = MASK_RTC_CTRL_UTI; // stop it from updating external registers
 	
 	// get year/month/day/hours/mins/second from RTC
 	// below is subtly wrong, and i dno't care. don't need the datetime in a struct anyway.
@@ -674,8 +731,8 @@ void App_DisplayTime(void)
 
 	sprintf(global_string_buff1, "20%02X-%02X-%02X %02X:%02X", R8(RTC_YEAR), R8(RTC_MONTH), R8(RTC_DAY), R8(RTC_HOURS), R8(RTC_MINUTES));
 	
-	// restore timer control to what it had been
-	R8(RTC_CONTROL) = old_rtc_control;
+	// reset timer control to daylight savings, 24 hr model, and not battery saving mode, and clear UTI
+	R8(RTC_CONTROL) = (MASK_RTC_CTRL_DSE | MASK_RTC_CTRL_12_24 | MASK_RTC_CTRL_STOP);
 
 	// draw at upper/right edge of screen, on app title bar.
 	App_EnterStealthTextUpdateMode();
@@ -738,6 +795,214 @@ size_t _Stub_read(int fd, void *buf, size_t count)
 long _Stub_lseek(int fd, long offset, int whence)
 {
 	return 0;
+}
+
+
+__attribute__((interrupt(0xffea))) void nmi_handler()
+{
+	R8(VICKY_TEXT_CHAR_RAM + 4799) = R8(VICKY_TEXT_CHAR_RAM + 4799) + 1;
+
+	EventRecord*		kbd_event;
+
+	#if defined _F256K_ || defined _F256K2_	
+		// treat RESTORE key as '\' as it would be on a "normal" keyboard
+		// Event_ProcessF256KKeyboardInterrupt();
+		// no point in calling the F256K keyboard handler, as RESTORE isn't wired into the VIA
+		// we can assume if we're here, that a KEYDOWN event happened. Holding RESTORE down doesn't fire multiple NMI interrupts, just the one.
+
+		kbd_event = &global_event_manager->queue_[global_event_manager->write_idx_++];
+		global_event_manager->write_idx_ %= EVENT_QUEUE_SIZE;
+		
+		// TODO: have a public function in events that returns true/false if shift is down. or modifier key flag you pass. then redo this.
+// 		if (modifier_keys_pressed[KEY_UNIFIED_SHIFT] == true)
+// 		{
+// 			kbd_event->key_.char_ = '|';
+// 		}
+// 		else
+		{
+			kbd_event->key_.char_ = '\\';
+		}
+		
+		kbd_event->what_ = EVENT_KEYDOWN;
+		kbd_event->key_.key_ = 0x38;	// spot RESTORE is mapped to in kbd_256k_matrix
+		kbd_event->key_.modifiers_ = 0;			
+		kbd_event->key_.source_ = EVENT_KEY_SOURCE_EXTERNAL;
+			// LOGIC:
+			// this is actually internal but since we have no way to detect key up, we have to 
+			// treat it as ps/2/non-internal, in order to prevent an unstoppable repeat-key situation
+		
+	#endif
+}
+
+
+__attribute__((interrupt(0xffee))) void irq_handler()
+{
+	static uint8_t		units_since_last_clock_display_update;
+	
+	// DEBUG: increment first vis char everytime this handler is hit
+	//R8(VICKY_TEXT_CHAR_RAM + 80) = R8(VICKY_TEXT_CHAR_RAM + 80) + 1; 
+
+	pending_int_value = R8(INT_PENDING_REG0);
+	
+	// is this interrupt firing because of interrupt group 0?
+	if ( pending_int_value )
+	{
+		// Check for P/S2 keyboard flag
+		if ( (pending_int_value & JR0_INT02_KBD) != 0)
+		{
+			// this is a PS/2 keyboard interrupt
+			//R8(VICKY_TEXT_CHAR_RAM + 160) = R8(VICKY_TEXT_CHAR_RAM + 160) + 1; 
+			
+			// clear pending flag before doing any work
+			R8(INT_PENDING_REG0) = pending_int_value;
+
+			//R8(VICKY_TEXT_CHAR_RAM + 161) = R8(VICKY_TEXT_CHAR_RAM + 161) + 1; 
+			
+			// clear the pending flag so it doesn't show up again
+			// think this works because manual says "When writing to the register, setting a flag will clear the pending status of the interrupt."
+			// R8(INT_PENDING_REG0) = pending_int_value; // not sure it matters what we write, but this is what manual example does.
+
+			 // check if there is a key in the queue
+			 if ((R8(VICKY_PS2_STATUS) & VICKY_PS2_STATUS_FLAG_KEMP) == 0)
+			 {
+				//pending_int_value = R8(VICKY_PS2_KDB_IN);
+				// debug: write char to screen in 2nd position
+				//R8(VICKY_TEXT_CHAR_RAM + 1) = pending_int_value;
+				//R8(VICKY_TEXT_CHAR_RAM + 162) = R8(VICKY_TEXT_CHAR_RAM + 162) + 1; 
+				Event_ProcessPS2KeyboardInterrupt();
+				
+				//event_key_queue[event_key_queue_write_idx++] = R8(VICKY_PS2_KDB_IN);
+	
+				//event_key_queue_idx %= EVENT_QUEUE_SIZE;  <-- does a long jump, seems to freeze up machine from interrupt. go simpler...
+	// 		 	if (event_key_queue_idx > EVENT_QUEUE_SIZE)
+	// 		 	{
+	// 		 		event_key_queue_idx = 0;
+	// 		 	}
+				// above also caused freeze. switched queue size to 256 so that I can just let the idx roll over
+			 }
+		}
+		else
+		{
+			// event was not PS/2. will assume it was SOF, and do an F256K keyboard check
+	
+			#if defined _F256K_ || defined _F256K2_
+			
+				if ( (pending_int_value & JR0_INT00_SOF) != 0)
+				{
+					//R8(VICKY_TEXT_CHAR_RAM + 161) = R8(VICKY_TEXT_CHAR_RAM + 161) + 1; 
+					
+					// clear pending flag before doing any work
+					R8(INT_PENDING_REG0) = pending_int_value;
+	
+					if (global_kbd_initialized == true)
+					{
+						if ((R8(OPT_KBD_STATUS) & FLAG_OPT_KBD_STAT_MECH) == 0)
+						{
+							// optical keyboard
+							//R8(VICKY_TEXT_CHAR_RAM + 162) = R8(VICKY_TEXT_CHAR_RAM + 162) + 1; 
+							Event_ScanF256KOpticalKeyboard();
+						}
+						else
+						{
+							// mech keyboard from K1
+							//R8(VICKY_TEXT_CHAR_RAM + 163) = R8(VICKY_TEXT_CHAR_RAM + 163) + 1; 
+							Event_ScanF256KMechKeyboard();
+						}
+					}
+				}
+				else
+				{
+					// don't know what this is, but need to clear the pending flag
+					R8(INT_PENDING_REG0) = pending_int_value;
+				}
+
+			#else
+				// don't know what this is, but need to clear the pending flag
+				R8(INT_PENDING_REG0) = pending_int_value;
+			#endif
+	
+		}		
+	}
+
+	//R8(VICKY_TEXT_CHAR_RAM + 160) = R8(VICKY_TEXT_CHAR_RAM + 160) + 1; 
+
+	// check for Group 1 interrupts: RTC clock etc.
+	pending_int_value = R8(INT_PENDING_REG1);
+
+	if ( pending_int_value )
+	{
+		// Check for RTC "rates" flag
+		if ( (pending_int_value & JR1_INT04_RTC) != 0)
+		{
+			// this is a real time clock interrupt
+			//R8(VICKY_TEXT_CHAR_RAM + 159-4) = R8(VICKY_TEXT_CHAR_RAM  + 159-4) + 1; 
+			
+			// clear pending flag before doing any work
+			R8(INT_PENDING_REG1) = pending_int_value;
+
+			// double check this is from the RATES function and not some other RTC interrupt
+ 			if ( (R8(RTC_FLAGS) & FLAG_RTC_PERIODIC_INT) != 0)
+			{
+				// LOGIC:
+				//   we use timer for 2 purposes:
+				//     1. see if we need to refresh the clock display. this only needs to happen 1x/second at max.
+				//     2. see if a key has been held down long enough to repeat. this check needs to be on a shorter schedule.
+				
+				//R8(VICKY_TEXT_CHAR_RAM + 159-3) = R8(VICKY_TEXT_CHAR_RAM  + 159-3) + 1; 
+				
+				// handle clock display
+				units_since_last_clock_display_update++;
+				
+				//R8(VICKY_TEXT_CHAR_RAM + 159-2) = 48 + units_since_last_clock_display_update; 
+				
+				if (units_since_last_clock_display_update > EVENT_CLOCK_DISPLAY_SKIP_COUNT)
+				{
+					units_since_last_clock_display_update = 0;
+					
+					//R8(VICKY_TEXT_CHAR_RAM + 159-1) = R8(VICKY_TEXT_CHAR_RAM  + 159-1) + 1; 
+					
+					// update RTC display if it is supposed to be visible
+					App_DisplayTime();
+				}
+				
+				// handle potential keyboard repeat
+				Keyboard_HandleRepeatTimerEvent();
+			}
+		}
+		// is this interrupt firing because of UART serial activity?
+		else if ( (pending_int_value & JR1_INT00_UART) != 0)
+		{	
+			serial_temp = (R8(UART_LSR) & UART_ERROR_MASK);
+			
+			if (serial_temp > 0)
+			{
+				sprintf(global_string_buff1, "serial error %x", serial_temp);
+				Buffer_NewMessage(global_string_buff1);
+				// clear error by reading the data register. (I think that's supposed to work to clear errors anyway)
+				// Read and clear status registers
+				serial_temp = R8(UART_LSR);
+				serial_temp = R8(UART_MSR);
+				serial_temp = R8(UART_BASE);
+			}
+			else
+			{
+				while ( (R8(UART_LSR) & UART_DATA_AVAILABLE) != 0)
+				{
+					global_uart_in_buffer[global_uart_write_idx++] = R8(UART_BASE);
+					
+					if (global_uart_write_idx > UART_BUFFER_SIZE)
+					{
+						global_uart_write_idx = 0;
+					}
+				}
+			}
+		}
+		else
+		{
+			// don't know what this is, but need to clear the pending flag
+			R8(INT_PENDING_REG1) = pending_int_value;
+		}		
+	}
 }
 
 

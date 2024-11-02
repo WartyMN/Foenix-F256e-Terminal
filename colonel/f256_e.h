@@ -11,6 +11,15 @@
 #ifndef F256_E_H_
 #define F256_E_H_
 
+// pick up all colonel library headers
+#include "bitmap.h"
+#include "debug.h"
+#include "event.h"
+#include "general.h"
+#include "keyboard.h"
+#include "list.h"
+#include "sys.h"
+#include "text.h"
 
 
 /*****************************************************************************/
@@ -23,6 +32,20 @@
 /*****************************************************************************/
 /*                            Macro Definitions                              */
 /*****************************************************************************/
+
+// hide __fastcall_ from everything but CC65 (to squash some warnings in LSP/BBEdit)
+#ifndef __CC65__
+	#define __fastcall__ 
+#endif
+
+// hide "__far" keyboard from host mac language checker
+#ifndef __CALYPSI__
+#  define __far 
+#endif
+
+#ifndef NULL
+#  define NULL 0
+#endif
 
 
 // adapted from vinz67

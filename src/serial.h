@@ -35,14 +35,14 @@
 /*****************************************************************************/
 
 // project includes
-//#include "text.h"
+
 
 // C includes
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
-// cc65 includes
+
+// F256 includes
 
 /*****************************************************************************/
 /*                            Macro Definitions                              */

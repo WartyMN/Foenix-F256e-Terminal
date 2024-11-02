@@ -49,16 +49,15 @@
 /*****************************************************************************/
 
 // project includes
-#include "general.h"
+
 
 // C includes
 #include <stdbool.h>
+#include <stdint.h>
 
 
 // F256 includes
 
-
-// cc65 includes
 
 
 /*****************************************************************************/
@@ -505,12 +504,16 @@ bool Text_DrawString(char* the_string, uint8_t fore_color, uint8_t back_color);
 // **** "Text Window" Functions ****
 // **** Move these back into OS/f Text Library in the future!
 
-// Display a Text-based dialog box, with a title, a message body, and a place for users to input text
-// returns false on error (eg, max string len is wider than dialog body), or if user refused to enter text
-// returns true if user entered something
-// populates the passed buffer with the text the user typed
-// user hitting ESC will always cause false to be returned, regardless of keyboard shortcuts.
-int8_t Text_DisplayTextEntryDialog(TextDialogTemplate* the_dialog_template, char* char_save_mem, char* attr_save_mem, char* the_buffer, uint8_t the_max_length);
+
+// general function for drawing a "window"-like text object using draw chars
+// can supply a title, and specify if it should optionally draw another row under the title
+// can supply background color, line color, and text color. 
+// can say if you want background cleared
+// can pass a pointer to a buffer where the text/color under the window will be saved before drawing (for easy restore later)
+//! @param	accent_color - Index to the desired accent color (0-15). Window frame, etc.
+//! @param	fore_color - Index to the desired foreground text color (0-15).
+//! @param	back_color - Index to the desired background color (0-15).
+bool Text_DrawWindow(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t accent_color, uint8_t fore_color, uint8_t back_color, char* the_header_text, char* char_save_mem, char* attr_save_mem, bool clear_first, bool enclose_header);
 
 // Display a Text-based dialog box, with 1, 2, or 3 buttons, a title, and a message body
 // Supports keyboard shortcuts for each button
@@ -518,14 +521,22 @@ int8_t Text_DisplayTextEntryDialog(TextDialogTemplate* the_dialog_template, char
 // returns -1 on error (such as can't fit buttons into the space allowed, or a button string is empty, etc.)
 // returns 0, 1, 2 indicating which button was selected
 // user hitting ESC will always cause -1 to be returned, regardless of keyboard shortcuts. This effectively gives you 2 shortcuts to say 'no'/'cancel'/'go back'.
-int8_t Text_DisplayDialog(TextDialogTemplate* the_dialog_template, char* char_save_mem, char* attr_save_mem);
+//! @param	accent_color - Index to the desired accent color (0-15).
+//! @param	fore_color - Index to the desired foreground color (0-15).
+//! @param	back_color - Index to the desired background color (0-15).
+//! @param	cancel_color - Index to the desired foreground color (0-15) for the button that represents the cancel action
+//! @param	affirm_color - Index to the desired background color (0-15) for the button that represents the confirm/affirm/ok action
+int8_t Text_DisplayDialog(TextDialogTemplate* the_dialog_template, char* char_save_mem, char* attr_save_mem, uint8_t accent_color, uint8_t fore_color, uint8_t back_color, uint8_t cancel_color, uint8_t affirm_color);
 
-// general function for drawing a "window"-like text object using draw chars
-// can supply a title, and specify if it should optionally draw another row under the title
-// can supply background color, line color, and text color. 
-// can say if you want background cleared
-// can pass a pointer to a buffer where the text/color under the window will be saved before drawing (for easy restore later)
-bool Text_DrawWindow(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t fore_color, uint8_t back_color, uint8_t text_color, char* the_header_text, char* char_save_mem, char* attr_save_mem, bool clear_first, bool enclose_header);
+// Display a Text-based dialog box, with a title, a message body, and a place for users to input text
+// returns false on error (eg, max string len is wider than dialog body), or if user refused to enter text
+// returns true if user entered something
+// populates the passed buffer with the text the user typed
+// user hitting ESC will always cause false to be returned, regardless of keyboard shortcuts.
+//! @param	accent_color - Index to the desired accent color (0-15).
+//! @param	fore_color - Index to the desired foreground color (0-15).
+//! @param	back_color - Index to the desired background color (0-15).
+int8_t Text_DisplayTextEntryDialog(TextDialogTemplate* the_dialog_template, char* char_save_mem, char* attr_save_mem, char* the_buffer, uint8_t the_max_length, uint8_t accent_color, uint8_t fore_color, uint8_t back_color);
 
 
 

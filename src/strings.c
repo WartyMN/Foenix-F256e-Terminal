@@ -60,6 +60,9 @@ static char* strings[NUM_STRINGS]= {
      (char*)"Out of memory error",
      (char*)"Scanning for drives...",
      (char*)"%u drives found",
+     (char*)"External SD card successfully mounted as Device 0",
+     (char*)"Internal SD card successfully mounted as Device 1",
+     (char*)"Device %d successfully mounted",
      (char*)"Hit any key",
      (char*)"Available memory: %zu bytes",
      (char*)"Serial buffer saved to disk",
@@ -90,11 +93,18 @@ static char* strings[NUM_STRINGS]= {
      (char*)"Foenix charset selected.",
      (char*)"https://github.com/WartyMN/f256-fterm/",
      (char*)"F256 f/term %c2024 Micah Bly. Version %u.%u.%u.",
+     (char*)"Machine: F256K2 (optical keyboard)",
+     (char*)"Machine: F256K upgraded to F256K2 (mechanical keyboard)",
+     (char*)"Machine: F256K with 'Extended' memory FPGA load",
+     (char*)"Machine: Unknown, ID=%d",
+     (char*)"Machine: F256JR2",
      (char*)"F256JR",
+     (char*)"F256JR2",
      (char*)"F256K",
      (char*)"F256K2",
      (char*)"<unknown hardware>",
 };
+
 
 
 /*****************************************************************************/

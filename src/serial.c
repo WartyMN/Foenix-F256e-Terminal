@@ -13,17 +13,12 @@
 /*****************************************************************************/
 
 // project includes
-#include "serial.h"
 #include "app.h"
 #include "comm_buffer.h"
-#include "general.h"
-#include "keyboard.h"
 #include "memory.h"
-#include "text.h"
 #include "screen.h"
+#include "serial.h"
 #include "strings.h"
-#include "sys.h"
-#include "text.h"
 #include "ymodem.h"
 
 // C includes
@@ -32,7 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 // F256 includes
 #include "f256_e.h"
@@ -1317,7 +1311,7 @@ void Serial_CycleForegroundColor(void)
 // 	
 // 	if (bytes_received > 0)
 // 	{
-// 		General_CreateFilePathFromFolderAndFile(temp_path_buffer, "0:", the_filename);
+// 		General_CreateFilePathFromFolderAndFile(temp_path_buffer, "0:", the_filename, FILE_MAX_PATHNAME_SIZE);
 // 		Buffer_NewMessage(temp_path_buffer);
 // 	
 // 		// Get a target file handle for Writing
@@ -1391,7 +1385,7 @@ bool Serial_DebugDump(void)
 		return false;
 	}
 
-	General_CreateFilePathFromFolderAndFile(temp_path_buffer, "0:", the_name);
+	General_CreateFilePathFromFolderAndFile(temp_path_buffer, "0:", the_name, FILE_MAX_PATHNAME_SIZE);
 Buffer_NewMessage(temp_path_buffer);
 
 	// Get a target file handle for Writing

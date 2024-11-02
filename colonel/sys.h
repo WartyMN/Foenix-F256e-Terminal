@@ -40,12 +40,11 @@
 
 // project includes
 #include "bitmap.h"
-#include "general.h"
 
 // C includes
 #include <stdbool.h>
+#include <stdint.h>
 
-#include "f256.h"
 
 
 /*****************************************************************************/

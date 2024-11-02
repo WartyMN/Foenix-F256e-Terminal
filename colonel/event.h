@@ -58,57 +58,13 @@
 
 #define EVENT_QUEUE_SIZE	64		//! number of event records in the circular buffer
 
-// F256 Interrupt-related
+// timing-related settings. In a bigger OS, these would probably be settable by individual user preference.
 
-// Pending Interrupt (Read and Write Back to Clear)
-#define INT_PENDING_REG0		0xF01660	// 
-#define INT_PENDING_REG1		0xF01661	// 
-#define INT_PENDING_REG2		0xF01662	// IEC Signals Interrupt
-#define INT_PENDING_REG3		0xF01663	// NOT USED
-// Polarity Set
-#define INT_POL_REG0			0xF01664	// 
-#define INT_POL_REG1			0xF01665	// 
-#define INT_POL_REG2			0xF01666	// IEC Signals Interrupt
-#define INT_POL_REG3			0xF01667	// NOT USED
-// Edge Detection Enable
-#define INT_EDGE_REG0			0xF01668	// 
-#define INT_EDGE_REG1			0xF01669	// 
-#define INT_EDGE_REG2			0xF0166A	// IEC Signals Interrupt
-#define INT_EDGE_REG3			0xF0166B	// NOT USED
-// Mask
-#define INT_MASK_REG0			0xF0166C	// 
-#define INT_MASK_REG1			0xF0166D	// 
-#define INT_MASK_REG2			0xF0166E	// IEC Signals Interrupt
-#define INT_MASK_REG3			0xF0166F	// NOT USED
+#define EVENT_KEYBOARD_REPEAT_RTC_RATE			FLAG_RTC_RATE_63MS	// the RTC rate value between key repeat actions
+#define EVENT_KEYBOARD_REPEAT_START_SKIP_COUNT	8					// how many RTC interrupt events are skipped before registering a newly held-down key as going into repeat mode
+#define EVENT_CLOCK_DISPLAY_SKIP_COUNT			16					// how many RTC interrupt events are skipped before bothering to update clock display.
 
-// Interrupt Bit Definition
-// Register Block 0
-#define JR0_INT00_SOF			0x01 	// Start of Frame @ 60FPS or 70hz (depending on the Video Mode)
-#define JR0_INT01_SOL			0x02 	// Start of Line (Programmable)
-#define JR0_INT02_KBD			0x04 	// PS2 Keyboard
-#define JR0_INT03_MOUSE			0x08 	// PS2 Mouse 
-#define JR0_INT04_TMR0			0x10 	// Timer0
-#define JR0_INT05_TMR1			0x20 	// Timer1
-#define JR0_INT06_RSVD0			0x40 	// Reserved 
-#define JR0_INT07_CRT			0x80 	// Cartridge
-// Register Block 1
-#define JR1_INT00_UART			0x01 	// UART
-#define JR1_INT01_TVKY2			0x02 	// TYVKY NOT USED
-#define JR1_INT02_TVKY3			0x04 	// TYVKY NOT USED
-#define JR1_INT03_TVKY4			0x08 	// TYVKY NOT USED
-#define JR1_INT04_RTC			0x10 	// Real Time Clock
-#define JR1_INT05_VIA0			0x20 	// VIA0 (Jr & K)
-#define JR1_INT06_VIA1			0x40 	// VIA1 (K Only) - Local Keyboard
-#define JR1_INT07_SDCARD		0x80 	// SDCard Insert Int
-// Register Block 1
-#define JR2_INT00_IEC_DAT		0x01 	// IEC_DATA_i
-#define JR2_INT01_IEC_CLK		0x02 	// IEC_CLK_i
-#define JR2_INT02_IEC_ATN		0x04 	// IEC_ATN_i
-#define JR2_INT03_IEC_SREQ		0x08 	// IEC_SREQ_i
-#define JR2_INT04_RSVD1			0x10 	// Reserved
-#define JR2_INT05_RSVD2			0x20 	// Reserved
-#define JR2_INT06_RSVD3			0x40 	// Reserved
-#define JR2_INT07_RSVD4			0x80 	// Reserved
+
 
 
 /*****************************************************************************/
@@ -142,7 +98,6 @@ typedef enum event_kind
 #define EVENT_NULL			0
 #define EVENT_KEYDOWN		1
 #define EVENT_KEYUP			2
-
 
 typedef enum event_mask 
 {
@@ -205,6 +160,10 @@ typedef enum event_modifier_flags
 // 	rightControlKey			= 1 << rightControlKeyBit
 } event_modifier_flags;
 
+// keyboard source for event struct
+#define EVENT_KEY_SOURCE_INTERNAL	0	// optical in K2, or mechanical in K1
+#define EVENT_KEY_SOURCE_EXTERNAL	1	// ps/2
+
 
 // TODO: localize this for A2560
 enum
@@ -245,6 +204,7 @@ struct EventKeyboard {
 	uint8_t				key_;		//! the key code of the key pushed. eg, KEY_BKSP (0x92), not CH_BKSP (0x08). Most useful for handling action keys such as cursors, DEL, BS, ESC, etc.
 	uint8_t				char_;		//! the character code resulting from the key, after mapping. e.g, 1 may return 49, ALT-1 may return 145, SHIFT-1 may return 33; backspace may return 8, etc.
 	uint8_t				modifiers_;	//! bit flags for shift, ctrl, meta, etc. 
+	uint8_t				source_;	//! 0=internal keyboard, 1=external ps/2 keyboard
 //     char    ascii;
 //     char    flags;  // negative for no associated ASCII.
 //     struct event_timer_t event_timer;
@@ -352,13 +312,23 @@ EventRecord* EventManager_NextEvent(void);
 //! @param	the_window: this may be set for non-mouse up/down events. For mouse up/down events, it will not be set, and X/Y will be used to find the window.
 void EventManager_AddEvent(event_kind the_what, uint8_t the_raw_code,  uint8_t the_mapped_code, event_modifiers the_modifiers);
 
+// Process one key action from the interrupt, convert raw code, and turn it into an event
+void Event_ProcessPS2KeyboardInterrupt(void);
 
 #if defined _F256K_ || defined _F256K2_
 
 	// get the built-in keyboard on the F256K ready
-	void Event_InitalizeKeyboard256K(void);
+	void Event_InitializeKeyboard256K(void);
+
+	// set RTC 'rates' timer interrupt so we can update clock display
+	void Event_InitializeRTCInterrupts(void);
+
+	// Scan F256K built-in keyboard for an event
+	void Event_ScanF256KMechKeyboard(void);
+	void Event_ScanF256KOpticalKeyboard(void);
 
 #endif
+
 
 // **** Debug functions *****
 

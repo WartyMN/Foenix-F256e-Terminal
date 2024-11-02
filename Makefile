@@ -28,12 +28,11 @@ BINDIR := bin
 
 # Common source files
 ASM_SRCS = f256xe_startup.s memory.s
-C_SRCS = app.c bitmap.c comm_buffer.c debug.c dma.c event.c general.c kernel.c keyboard.c list.c screen.c serial.c startup.c strings.c sys.c text.c ff.c ffunicode.c f256xe_diskio.c
+C_SRCS = app.c comm_buffer.c dma.c screen.c serial.c startup.c strings.c
 
 MODEL = --code-model=large --data-model=medium
 LIB_MODEL = lc-md
 
-#FOENIX_LINKER_RULES = linker-files/f256-plain.scm
 FOENIX_LINKER_RULES = linker-files/f256-term.scm
 
 # Object files
@@ -44,23 +43,23 @@ obj/%.o: %.s
 	as65816 --core=65816 $(MODEL) --target=Foenix --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
 
 obj/%.o: %.c
-	cc65816 --core=65816 $(MODEL) -O1 -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+	cc65816 -Wall --core=65816 $(MODEL) -O1 -D$(M)=1 -D$(D)=1 -D$(DEBUG_DEF_1) -D$(DEBUG_DEF_2) -D$(DEBUG_DEF_3) -D$(DEBUG_DEF_4) -D$(DEBUG_DEF_5) -D$(DEBUG_VIA_SERIAL) --list-file=$(@:%.o=%.lst) -Icolonel -o $@ $<
 
 obj/%-debug.o: %.s
-	as65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+	as65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Icolonel -o $@ $<
 
 obj/%-debug.o: %.c
-	cc65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Iinclude -o $@ $<
+	cc65816 --core=65816 $(MODEL) --debug --list-file=$(@:%.o=%.lst) -Icolonel -o $@ $<
 
 fterm.pgz:  $(OBJS)
-	ln65816 -o $(BINDIR)/$@ $^ $(FOENIX_LINKER_RULES) clib-$(LIB_MODEL).a --output-format=pgz --list-file=obj/_fterm.lst --cross-reference --rtattr printf=medium --rtattr cstartup=Foenix --heap-size=16384
+	ln65816 -o $(BINDIR)/$@ $^ $(FOENIX_LINKER_RULES) colonel/fnx_e_colonel.a clib-$(LIB_MODEL).a --output-format=pgz --list-file=obj/_fterm.lst --cross-reference --rtattr printf=medium --rtattr cstartup=Foenix --heap-size=16384
 
 ## ftp it to the linux box
-#	~/dev/bbedit-workspace-foenix/f256k2-FileManager/_ftp_to_linux.sh ~/dev/bbedit-workspace-foenix/f256k2-FileManager/bin/fterm.pgz
+	~/dev/bbedit-workspace-foenix/f256e-terminal/_ftp_to_linux.sh ~/dev/bbedit-workspace-foenix/f256e-terminal/bin/fterm.pgz
 
 ## upload it to the foenix
-	python3 $(FOENIXMGR)/FoenixMgr/fnxmgr.py --boot RAM
-	python3 $(FOENIXMGR)/FoenixMgr/fnxmgr.py --run-pgz $(BINDIR)/fterm.pgz
+#	python3 $(FOENIXMGR)/FoenixMgr/fnxmgr.py --boot RAM
+#	python3 $(FOENIXMGR)/FoenixMgr/fnxmgr.py --run-pgz $(BINDIR)/fterm.pgz
 	
 clean:
 	-rm $(OBJS) $(OBJS:%.o=%.lst) $(OBJS_DEBUG) $(OBJS_DEBUG:%.o=%.lst)

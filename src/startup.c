@@ -18,14 +18,7 @@
 #include "startup.h"
 #include "app.h"
 #include "comm_buffer.h"
-#include "debug.h"
-//	#include "file.h"
-#include "general.h"
-#include "kernel.h"
-#include "keyboard.h"
 #include "memory.h"
-#include "sys.h"
-#include "text.h"
 #include "strings.h"
 
 // C includes
@@ -391,7 +384,6 @@ void Startup_ShowMachineSplash(void)
 	uint8_t*	machine_splash_attrs_right;
 	uint8_t*	this_splash_char;
 	uint8_t*	black_line;
-	uint8_t		h_scooch_dist;
 	uint8_t		left_x1;
 	uint8_t		left_x2;
 	uint8_t		right_x1;
@@ -410,12 +402,6 @@ void Startup_ShowMachineSplash(void)
 	Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 	General_DelayTicks(14000); // we want to show the thinnest version for a longer period of time
 	
-// 	// give user a chance to drop into BASIC immediately
-// 	if (Keyboard_GetKeyIfPressed() == 'b')
-// 	{
-// 		Kernal_RunNamed(global_named_app_basic, 5);
-// 	}
-
 	// rotate through a series of increasingly fat chars for a reverse louver effect
 	for (i=0; i < 6; i++)
 	{		
@@ -432,11 +418,6 @@ void Startup_ShowMachineSplash(void)
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 	}
 	
-// 	// give user a chance to drop into BASIC immediately
-// 	if (Keyboard_GetKeyIfPressed() == 'b')
-// 	{
-// 		Kernal_RunNamed(global_named_app_basic, 5);
-// 	}
 	// give user a chance to skip logo immediately
 	if (Keyboard_GetKeyIfPressed())
 	{
@@ -630,7 +611,7 @@ void Startup_ShowAboutInfo(void)
 // 	}
 
 	// show app name, version, and credit
-	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
+	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_THIS_APP), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
 	Text_DrawStringAtXY((80-strlen(global_string_buff1))/2, INFO_FMANAGER_DISPLAY_ROW, global_string_buff1, 15, COLOR_BLACK);
 }
 
@@ -658,12 +639,6 @@ void Startup_ShowLogo(void)
 		//  you can also start from DOS with "/- fm", and then / ends up in 200 slot.
 		// if from flash, $200 would be 'f', and $201 would be 'm', and $202 would be 0. 
 		Startup_ShowMachineSplash();		
-	
-// 		// give user a chance to drop into BASIC immediately
-// 		if (Keyboard_GetKeyIfPressed() == 'b')
-// 		{
-// 			Kernal_RunNamed(global_named_app_basic, 5);
-// 		}
 	
 		General_DelayTicks(10000);
 	}

@@ -15,11 +15,7 @@
 // project includes
 #include "comm_buffer.h"
 #include "app.h"
-#include "debug.h"
-#include "general.h"
-#include "keyboard.h"
 #include "strings.h"
-#include "text.h"
 
 // C includes
 #include <stdbool.h>

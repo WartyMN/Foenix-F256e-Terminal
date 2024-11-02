@@ -15,18 +15,10 @@
 /*****************************************************************************/
 
 // project includes
-#include "screen.h"
 #include "app.h"
 #include "comm_buffer.h"
-#include "debug.h"
-// #include "file.h"
-// #include "folder.h"
-#include "general.h"
-#include "kernel.h"
-#include "keyboard.h"
 #include "memory.h"
-#include "sys.h"
-#include "text.h"
+#include "screen.h"
 #include "strings.h"
 
 // C includes
@@ -60,6 +52,8 @@ extern int8_t				global_connected_device[DEVICE_MAX_DEVICE_COUNT];	// will be 8,
 extern bool					global_started_from_flash;		// tracks whether app started from flash or from disk
 extern bool					global_find_next_enabled;
 
+extern bool					global_clock_is_visible;		// tracks whether or not the clock should be drawn. set to false when not showing main 2-panel screen.
+
 extern char*				global_string_buff1;
 extern char*				global_string_buff2;
 
@@ -87,19 +81,6 @@ extern uint8_t				temp_screen_buffer_attr[APP_DIALOG_BUFF_SIZE];	// WARNING HBD:
 /*****************************************************************************/
 /*                        Public Function Definitions                        */
 /*****************************************************************************/
-
-
-// display information about f/manager
-void Screen_ShowAppAboutInfo(void)
-{
-	// show app name, version, and credit
-	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
-	Buffer_NewMessage(global_string_buff1);
-	
-// 	// also show current bytes free
-// 	sprintf(global_string_buff1, Strings_GetString(ID_STR_N_BYTES_FREE), _heapmemavail());
-// 	Buffer_NewMessage(global_string_buff1);
-}
 
 
 // show user a dialog and have them enter a string
@@ -135,7 +116,7 @@ char* Screen_GetStringFromUser(char* dialog_title, char* dialog_body, char* star
 		temp_dialog_width -= 2;
 	}
 	
-	success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, temp_dialog_width);
+	success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, temp_dialog_width, APP_ACCENT_COLOR, APP_FOREGROUND_COLOR, APP_BACKGROUND_COLOR);
 
 	// restore normal dialog width
 	global_dlg.width_ = orig_dialog_width;
@@ -162,7 +143,7 @@ bool Screen_ShowUserTwoButtonDialog(char* dialog_title, uint8_t dialog_body_stri
 					
 	global_dlg.num_buttons_ = 2;
 
-	return Text_DisplayDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr);
+	return Text_DisplayDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, APP_ACCENT_COLOR, APP_FOREGROUND_COLOR, APP_BACKGROUND_COLOR, COLOR_RED, COLOR_GREEN);
 }
 
 

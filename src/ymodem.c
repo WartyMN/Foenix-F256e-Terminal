@@ -35,8 +35,8 @@
 #include "ymodem.h"
 
 #include "comm_buffer.h"
-#include "general.h"
 #include "serial.h"
+
 #include <stdint.h>
 
 

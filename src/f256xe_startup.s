@@ -31,10 +31,10 @@ __low_level_init:
 				jsl IRQ_Init_Mask		; Just make sure all masks are off and the Pending registers are cleared
 				jsl	InitFONT_Mem		; in the RevA of the Board the FONT Memory is empty
 				jsl Init_Gamma			; Init Gamma table with 1.8 Value
-				jsl Init_Text_LUT		; Init the Text Color Table				
+;				jsl Init_Text_LUT		; Init the Text Color Table				
 				jsl TinyVky_Init		; Keeping the addressing long (just in case)
                 ; Set the Backgroud Color
-                jsl Fill_Color			; Set the Text Background Color 
+;                jsl Fill_Color			; Set the Text Background Color 
                 ; Fill the Screen with Spaces
                 jsl Clear_Screen    	;
 				jsl SplashText
@@ -56,9 +56,25 @@ IRQ_Init_Mask:
 				sta long: INT_EDGE_REG3		; MB: reg3 is unused, but...
 				
 				;sta long: INT_MASK_REG0	; MB: want to allow PS/2 keyboard events, so will set below...				
-				sta long: INT_MASK_REG1		; MB: do not need to allow F256K machines to get VIA interrupts, if just doing keyboard. can do VICKY SOF.
+				;sta long: INT_MASK_REG1	; MB: old: do not need to allow F256K machines to get VIA interrupts, if just doing keyboard. can do VICKY SOF. NEW (reason now commented out): need to set an RTC based interrupt with 'e' machine b/c no kernal timer available.
 				sta long: INT_MASK_REG2
 				sta long: INT_MASK_REG3	
+				
+				; MB: allow PS/2 keyboard interrupts
+				and #~JR0_INT02_KBD
+				sta long: INT_MASK_REG0
+				
+				; MB: allow RTC interrupts
+				lda #0xff
+				and #~JR1_INT04_RTC				;Real Time Clock - 0x10
+				sta long: INT_MASK_REG1
+
+				; enable interrupts for UART
+				lda #0xff
+				and #~JR1_INT00_UART
+				sta long: INT_MASK_REG1
+				
+				; clear all pending interrupts
 				lda long: INT_PENDING_REG0
 				sta long: INT_PENDING_REG0
 				lda long: INT_PENDING_REG1
@@ -67,24 +83,7 @@ IRQ_Init_Mask:
 				sta long: INT_PENDING_REG2
 				lda long: INT_PENDING_REG3
 				sta long: INT_PENDING_REG3
-				
-				; MB: allow PS/2 keyboard interrupts
-				and #~JR0_INT02_KBD
-				; MB: allow VICKY SOF interrupts
-;				and #~JR0_INT00_SOF
-;				and #~(JR0_INT02_KBD | JR0_INT00_SOF)
 
-;				sec
-;				sbc #JR0_INT02_KBD
-;				sbc #JR0_INT00_SOF
-				
-				sta long: INT_MASK_REG0
-				
-				; enable interrupts for UART
-				lda #0xff
-				and #~JR1_INT00_UART
-				sta long: INT_MASK_REG1
-				
 				; MB: Flush the PS/2 keyboard port
 				lda #0x10
 				sta long: 0xF01640			; VICKY_PS2_CTRL
@@ -130,23 +129,7 @@ TinyVky_Init:
 				rtl
 
 ;*********************************************************************
-;************************** Init_Text_LUT ****************************
-;*********************************************************************
-Init_Text_LUT:
-                setas
-                setxl 
-				ldx	##0000
-1$: 			lda long:fg_color_lut,x		; get Local Data
-                sta long:TEXT_LUT_FG,x	; Write in LUT Memory
-                lda long:bg_color_lut,x  
-                sta long:TEXT_LUT_BG,x	; Write in LUT Memory                              
-                inx
-                cpx ##0x0040
-                bne 1$
-				rtl
-
-;*********************************************************************
-;************************** Init_Text_LUT ****************************
+;**************************  Init_Gamma   ****************************
 ;*********************************************************************				
 				
 ;  VICKY GAMMA TABLES
@@ -184,7 +167,7 @@ Fill_Color:
                 setas 
                 setxl 
                 ldx ##0000
-                lda #0xE1
+                lda #0xF2
 1$:              
                 sta long: COLOR_MEM,x
                 inx 
@@ -212,7 +195,6 @@ InitFONT_Mem:
                 inx 
                 cpx ##0x0800
                 bne 2$
-
 				rtl
 
 ;*********************************************************************
@@ -249,41 +231,6 @@ Init_NMI_Service:
 
 ;	.section data_table ,data 	; An initialized data section in read/write memory (RAM).
 
-;table: .byte 0x55
-				.align 16
-fg_color_lut:	.byte 0x00, 0x00, 0x00, 0xFF
-                .byte 0x00, 0x00, 0x80, 0xFF
-                .byte 0x00, 0x80, 0x00, 0xFF
-                .byte 0x80, 0x00, 0x00, 0xFF
-                .byte 0x00, 0x80, 0x80, 0xFF
-                .byte 0x80, 0x80, 0x00, 0xFF
-                .byte 0x80, 0x00, 0x80, 0xFF
-                .byte 0x80, 0x80, 0x80, 0xFF
-                .byte 0x00, 0x45, 0xFF, 0xFF
-                .byte 0x13, 0x45, 0x8B, 0xFF
-                .byte 0x00, 0x00, 0x20, 0xFF
-                .byte 0x00, 0x20, 0x00, 0xFF
-                .byte 0x20, 0x00, 0x00, 0xFF
-                .byte 0x20, 0x20, 0x20, 0xFF
-                .byte 0xFF, 0x80, 0x00, 0xFF
-                .byte 0xFF, 0xFF, 0xFF, 0xFF
-
-bg_color_lut:	.byte 0x00, 0x00, 0x00, 0xFF  ;BGRA
-                .byte 0xAA, 0x00, 0x00, 0xFF
-                .byte 0x00, 0x80, 0x00, 0xFF
-                .byte 0x00, 0x00, 0x80, 0xFF
-                .byte 0x00, 0x20, 0x20, 0xFF
-                .byte 0x20, 0x20, 0x00, 0xFF
-                .byte 0x20, 0x00, 0x20, 0xFF
-                .byte 0x20, 0x20, 0x20, 0xFF
-                .byte 0x1E, 0x69, 0xD2, 0xFF
-                .byte 0x13, 0x45, 0x8B, 0xFF
-                .byte 0x00, 0x00, 0x20, 0xFF
-                .byte 0x00, 0x20, 0x00, 0xFF
-                .byte 0x40, 0x00, 0x00, 0xFF
-                .byte 0x10, 0x10, 0x10, 0xFF
-                .byte 0x40, 0x40, 0x40, 0xFF
-                .byte 0xFF, 0xFF, 0xFF, 0xFF
 				
 				.align 256
 GAMMA_1_8_Tbl   .byte  0x00, 0x0b, 0x11, 0x15, 0x19, 0x1c, 0x1f, 0x22, 0x25, 0x27, 0x2a, 0x2c, 0x2e, 0x30, 0x32, 0x34
@@ -310,7 +257,7 @@ fontset_ja:			.incbin "font/kana.fnt"
 
 				.align 16
 
-Text2Display    .asciz " F256xE Kernal Development System..."	
+Text2Display    .asciz "Frogblasting the vent cores..."	
 
 
 ;				.section BootVector ,text	;8bit Boot Vectors

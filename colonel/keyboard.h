@@ -147,7 +147,7 @@
 #define CH_TAB          9
 #define CH_COPYRIGHT	215
 #define CH_BKSP   		0x08	
-#define CH_DEL   		0x7F	// 127
+#define CH_DEL   		0x7F	// 127	
 #define CH_MENU			0xFF	// no particular reason for selecting FF.
 
 #define CH_K0      		'0'	
@@ -574,6 +574,7 @@
 #define CH_JIS_P			255
 #define CH_JIS_LAST			255
 
+
 /*****************************************************************************/
 /*                               Enumerations                                */
 /*****************************************************************************/
@@ -612,8 +613,9 @@ char Keyboard_GetChar(void);
 // main event processor
 void Keyboard_ProcessEvents(void);
 
-// initiate the minute hand timer
-void Keyboard_InitiateMinuteHand(void);
+// places the current repeat key into the keyboard out queue
+// if not key set up to repeat, does nothing
+void Keyboard_HandleRepeatTimerEvent(void);
 
 
 #endif /* KEYBOARD_H_ */

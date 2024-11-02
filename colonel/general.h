@@ -51,13 +51,6 @@
 /*                            Macro Definitions                              */
 /*****************************************************************************/
 
-// general
-#define MAX_STRING_COMP_LEN		192		//!< 255 + terminator is max string size for compares
-
-// word-wrap and string measurement related
-#define GEN_NO_STRLEN_CAP		-1		//!< for the xxx_DrawString function's max_chars parameter, the value that corresponds to 'draw the entire string if it fits, do not cap it at n characters' 
-#define WORD_WRAP_MAX_LEN		192	//!< For the xxx_DrawStringInBox function, the strnlen char limit. 40*25. 
-
 
 
 /*****************************************************************************/
@@ -75,12 +68,6 @@ typedef struct Coordinate
     uint8_t x;
     uint8_t y;
 } Coordinate;
-
-typedef struct Rectangle
-{
-	uint8_t		MinX, MinY;
-	uint8_t		MaxX, MaxY;
-} Rectangle;
 
 /*****************************************************************************/
 /*                             Global Variables                              */
@@ -106,7 +93,7 @@ typedef struct Rectangle
 //! from: https://stackoverflow.com/questions/4572556/concise-way-to-implement-round-in-c
 //! @param	the_float - a double value to round up/down
 //! @return	Returns an int with the rounded value
-int32_t General_Round(double the_float);
+//int32_t General_Round(double the_float);
 
 
 
@@ -205,7 +192,7 @@ int16_t General_Strnlen(const char *the_string, size_t max_len);
 // char* General_ExtractFilenameFromPathWithAlloc(const char* the_file_path);
 
 // populates the passed string by safely combining the passed file path and name, accounting for cases where path is a disk root
-void General_CreateFilePathFromFolderAndFile(char* the_combined_path, char* the_folder_path, char* the_file_name);
+void General_CreateFilePathFromFolderAndFile(char* the_combined_path, char* the_folder_path, char* the_file_name, uint16_t max_path_len);
 
 // return the first char of the last part of a file path
 // if no path part detected, returns the original string

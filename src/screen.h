@@ -27,11 +27,6 @@
 /*                                Includes                                   */
 /*****************************************************************************/
 
-//#include <string.h>
-
-#include "app.h"
-// #include "list_panel.h"
-#include "text.h"
 #include <stdint.h>
 
 
@@ -95,9 +90,6 @@ typedef struct UI_Button
 /*****************************************************************************/
 /*                       Public Function Prototypes                          */
 /*****************************************************************************/
-
-// display information about f/manager
-void Screen_ShowAppAboutInfo(void);
 
 // draw just the 3 column headers in the specified panel
 // if for_disk is true, will use name/type/size. if false, will use name/bank num/addr
