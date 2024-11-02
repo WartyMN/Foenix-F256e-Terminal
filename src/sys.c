@@ -55,7 +55,7 @@ static uint8_t standard_text_color_lut[64] =
 	0x00, 0xAA, 0x00, 0x00,
 	0xEA, 0x41, 0xC0, 0x00,
 	0x00, 0x48, 0x87, 0x00,
-	0x00, 0x9C, 0xFF, 0x00,
+	0x00, 0x88, 0xFF, 0x00,		// deeper orange than used previously for "standard" foenix color palette for orange: 0x00, 0x9C, 0xFF, 0x00,
 	0xFF, 0xDB, 0x57, 0x00,
 	0x28, 0x3F, 0x3F, 0x00,
 	0x8A, 0xAA, 0xAA, 0x00,
@@ -173,7 +173,7 @@ uint8_t Sys_DecimalToBCD(uint8_t dec_number);
 // enable or disable the gamma correction 
 void Sys_SetGammaMode(bool enable_it)
 {
-	uint8_t		the_gamma_mode_bits = R8(VICKY_GAMMA_CTRL_REG);
+	uint8_t		the_gamma_mode_bits = R8(VICKY_MASTER_CTRL_REG_L);
 	uint8_t		new_mode_flag;
 
 	// LOGIC:
@@ -196,10 +196,10 @@ void Sys_SetGammaMode(bool enable_it)
 	//the_gamma_mode_bits = (the_gamma_mode_bits & ~((uint8_t)1 << 6)) | ((uint8_t)enable_it << 6);
 	the_gamma_mode_bits  = (the_gamma_mode_bits & ~GAMMA_MODE_ONOFF_BITS) | (new_mode_flag & GAMMA_MODE_ONOFF_BITS);
 	
-	R8(VICKY_GAMMA_CTRL_REG) = the_gamma_mode_bits;
+	R8(VICKY_MASTER_CTRL_REG_L) = the_gamma_mode_bits;
 		
-	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_GAMMA_CTRL_REG)));
-	//DEBUG_OUT(("%s %d: wrote to %x to register at %p", __func__, __LINE__, the_gamma_mode_bits, P8(VICKY_GAMMA_CTRL_REG)));
+	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_MASTER_CTRL_REG_L)));
+	//DEBUG_OUT(("%s %d: wrote to %x to register at %p", __func__, __LINE__, the_gamma_mode_bits, P8(VICKY_MASTER_CTRL_REG_L)));
 }
 
 
@@ -280,7 +280,7 @@ void Sys_SetGraphicMode(bool enable_sprites, bool enable_bitmaps, bool enable_ti
 
 
 //! Switch machine into text mode
-//! @param as_overlay: If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
+//! @param	as_overlay - If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
 void Sys_SetModeText(bool as_overlay)
 {	
 	// LOGIC:
@@ -471,7 +471,6 @@ bool Sys_InitSystem(void)
 
 
 //! Find out what kind of machine the software is running on, and determine # of screens available
-//! @param	the_system: valid pointer to system object
 //! @return	Returns false if the machine is known to be incompatible with this software. 
 bool Sys_AutoDetectMachine(void)
 {
@@ -489,7 +488,6 @@ bool Sys_AutoDetectMachine(void)
 //! Find out what kind of machine the software is running on, and configure the passed screen accordingly
 //! Configures screen settings, RAM addresses, etc. based on known info about machine types
 //! Configures screen width, height, total text rows and cols, and visible text rows and cols by checking hardware
-//! @param	the_system: valid pointer to system object
 //! @return	Returns false if the machine is known to be incompatible with this software. 
 bool Sys_AutoConfigure(void)
 {
@@ -509,9 +507,10 @@ bool Sys_AutoConfigure(void)
 		case MACHINE_F256KE:
 		case MACHINE_F256K2E:
 			// if machine with built-in keyboard, need to initialize it.
-			#if defined _F256K_ || defined _F256K2_
+			#if defined _F256K_ || defined _F256K2_ 
 				// get the built-in keyboard on the F256K ready
-				Event_InitalizeKeyboard256K();
+				Event_InitializeKeyboard256K();
+				Event_InitializeRTCInterrupts();
 			#endif
 		case MACHINE_F256JR:
 		case MACHINE_F256JRE:
@@ -583,8 +582,7 @@ bool Sys_AutoConfigure(void)
 
 
 // //! Switch machine into text mode
-// //! @param	the_system: valid pointer to system object
-// //! @param as_overlay: If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
+// //! @param	as_overlay - If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
 // void Sys_SetModeText(bool as_overlay)
 // {	
 // 	// LOGIC:
@@ -618,8 +616,7 @@ bool Sys_AutoConfigure(void)
 
 
 // //! Change video mode to the one passed.
-// //! @param	the_screen: valid pointer to the target screen to operate on
-// //! @param	new_mode: One of the enumerated screen_resolution values. Must correspond to a valid VICKY video mode for the host machine. See VICKY_IIIA_RES_800X600_FLAGS, etc. defined in a2560_platform.h
+// //! @param	new_mode - One of the enumerated screen_resolution values. Must correspond to a valid VICKY video mode for the host machine. See VICKY_IIIA_RES_800X600_FLAGS, etc. defined in a2560_platform.h
 // //! @return	returns false on any error/invalid input.
 // bool Sys_SetVideoMode(uint8_t new_mode)
 // {
@@ -728,9 +725,8 @@ bool Sys_DetectScreenSize(void)
 //! Set the left/right and top/bottom borders
 //! This will reset the visible text columns as a side effect
 //! Grotesquely large values will be accepted as is: use at your own risk!
-//! @param	border_width: width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
-//! @param	border_height: height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
-//! @return	returns false on any error/invalid input.
+//! @param	border_width - width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
+//! @param	border_height - height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
 void Sys_SetBorderSize(uint8_t border_width, uint8_t border_height)
 {
 	uint8_t		border_x_cols;
@@ -767,18 +763,18 @@ void Sys_SetBorderSize(uint8_t border_width, uint8_t border_height)
 
 
 //! Enable or disable the hardware cursor in text mode, for the specified screen
-//! @param	the_system: valid pointer to system object
-//! @param	the_screen: valid pointer to the target screen to operate on
-//! @param enable_it: If true, turns the hardware blinking cursor on. If false, hides the hardware cursor;
+//! @param	enable_it - If true, turns the hardware blinking cursor on. If false, hides the hardware cursor;
 void Sys_EnableTextModeCursor(bool enable_it)
 {
-	uint8_t		the_cursor_mode_bits = R8(VICKY_TEXT_CURSOR_ENABLE);
+	uint8_t		the_cursor_mode_bits;
 	uint8_t		new_mode_flag;
 
 	// LOGIC:
 	//   bit 0 is enable/disable
 	//   bit 1-2 are the speed of flashing
 	//   bit 3 is solid (0) or flashing (1)
+	
+	the_cursor_mode_bits = R8(VICKY_TEXT_CURSOR_ENABLE);
 	
 	if (enable_it)
 	{
@@ -795,8 +791,8 @@ void Sys_EnableTextModeCursor(bool enable_it)
 	R8(VICKY_TEXT_CURSOR_ENABLE) = the_cursor_mode_bits;
 	
 	//DEBUG_OUT(("%s %d: cursor enabled now=%u", __func__, __LINE__, enable_it));
-	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_GAMMA_CTRL_REG)));
-	//DEBUG_OUT(("%s %d: wrote to %x to register at %p", __func__, __LINE__, the_gamma_mode_bits, P8(VICKY_GAMMA_CTRL_REG)));
+	//DEBUG_OUT(("%s %d: vicky byte 3 after gamma change = %x, %x", __func__, __LINE__, the_gamma_mode_bits, R8(VICKY_MASTER_CTRL_REG_L)));
+	//DEBUG_OUT(("%s %d: wrote to %x to register at %p", __func__, __LINE__, the_gamma_mode_bits, P8(VICKY_MASTER_CTRL_REG_L)));
 }
 
 
@@ -807,7 +803,6 @@ bool Sys_UpdateRTC(char* datetime_from_user)
 	static uint8_t		string_offsets[5] = {12,9,6,3,0};	// array is order by RTC order of min-hr-day-month-year
 	static uint8_t		rtc_offsets[5] = {0,2,2,3,1};	// starting at min=d692
 	static uint8_t		bounds[5] = {60,24,31,12,99};	// starting at min=d692
-	volatile uint8_t	old_rtc_control;
 	uint8_t				i;
 	int8_t				this_digit;
 	int8_t				tens_digit;
@@ -858,8 +853,7 @@ bool Sys_UpdateRTC(char* datetime_from_user)
 	__asm("SEI"); // disable interrupts in case some other process has a role here
 	
 	// stop RTC from updating external registers. Required!
-	old_rtc_control = R8(RTC_CONTROL);
-	R8(RTC_CONTROL) = old_rtc_control | 0x08; // stop it from updating external registers
+	R8(RTC_CONTROL) = MASK_RTC_CTRL_UTI; // stop it from updating external registers
 
 	rtc_addr = (uint8_t*)RTC_MINUTES;
 	
@@ -869,8 +863,8 @@ bool Sys_UpdateRTC(char* datetime_from_user)
 		R8(rtc_addr) = rtc_array[i];
 	}
 	
-	// restore timer control to what it had been
-	R8(RTC_CONTROL) = old_rtc_control;
+	// reset timer control to daylight savings, 24 hr model, and not battery saving mode, and clear UTI
+	R8(RTC_CONTROL) = (MASK_RTC_CTRL_DSE | MASK_RTC_CTRL_12_24 | MASK_RTC_CTRL_STOP);
 
 	__asm("CLI"); // restore interrupts
 

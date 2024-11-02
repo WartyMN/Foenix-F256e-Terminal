@@ -90,7 +90,7 @@ void Buffer_ScrollUp(void);
 // 	uint8_t	the_char;
 // 
 // 	// draw a 'hit space' message just above the buffer. this line is guaranteed not to be used by dungeon
-// 	Text_DrawStringAtXY(COL_HIT_SPACE, ROW_HIT_SPACE, General_GetString(ID_STR_MSG_HIT_ANY_KEY), COLOR_BRIGHT_GREEN, COLOR_BLACK);	
+// 	Text_DrawStringAtXY(COL_HIT_SPACE, ROW_HIT_SPACE, Strings_GetString(ID_STR_MSG_HIT_ANY_KEY), COLOR_BRIGHT_GREEN, COLOR_BLACK);	
 // 	
 // 	do
 // 	{
@@ -99,7 +99,7 @@ void Buffer_ScrollUp(void);
 // 	while (the_char != 32);
 // 
 // 	// undraw it
-// 	Text_DrawStringAtXY(COL_HIT_SPACE, ROW_HIT_SPACE, General_GetString(ID_STR_MSG_HIT_ANY_KEY), COLOR_BLACK, COLOR_BLACK);	
+// 	Text_DrawStringAtXY(COL_HIT_SPACE, ROW_HIT_SPACE, Strings_GetString(ID_STR_MSG_HIT_ANY_KEY), COLOR_BLACK, COLOR_BLACK);	
 // }
 
 

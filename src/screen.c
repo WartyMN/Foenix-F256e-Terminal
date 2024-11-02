@@ -60,7 +60,6 @@ extern int8_t				global_connected_device[DEVICE_MAX_DEVICE_COUNT];	// will be 8,
 extern bool					global_started_from_flash;		// tracks whether app started from flash or from disk
 extern bool					global_find_next_enabled;
 
-extern char*				global_string[NUM_STRINGS];
 extern char*				global_string_buff1;
 extern char*				global_string_buff2;
 
@@ -94,11 +93,11 @@ extern uint8_t				temp_screen_buffer_attr[APP_DIALOG_BUFF_SIZE];	// WARNING HBD:
 void Screen_ShowAppAboutInfo(void)
 {
 	// show app name, version, and credit
-	sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
+	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
 	Buffer_NewMessage(global_string_buff1);
 	
 // 	// also show current bytes free
-// 	sprintf(global_string_buff1, General_GetString(ID_STR_N_BYTES_FREE), _heapmemavail());
+// 	sprintf(global_string_buff1, Strings_GetString(ID_STR_N_BYTES_FREE), _heapmemavail());
 // 	Buffer_NewMessage(global_string_buff1);
 }
 
@@ -157,9 +156,9 @@ bool Screen_ShowUserTwoButtonDialog(char* dialog_title, uint8_t dialog_body_stri
 {
 	// copy title, body text, and buttons
 	General_Strlcpy((char*)&global_dlg_title, dialog_title, 36);
-	General_Strlcpy((char*)&global_dlg_body_msg, General_GetString(dialog_body_string_id), 70);
-	General_Strlcpy((char*)&global_dlg_button[0], General_GetString(negative_btn_label_string_id), 10);
-	General_Strlcpy((char*)&global_dlg_button[1], General_GetString(positive_btn_label_string_id), 10);
+	General_Strlcpy((char*)&global_dlg_body_msg, Strings_GetString(dialog_body_string_id), 70);
+	General_Strlcpy((char*)&global_dlg_button[0], Strings_GetString(negative_btn_label_string_id), 10);
+	General_Strlcpy((char*)&global_dlg_button[1], Strings_GetString(positive_btn_label_string_id), 10);
 					
 	global_dlg.num_buttons_ = 2;
 

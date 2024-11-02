@@ -17,7 +17,6 @@
 /*                                Includes                                   */
 /*****************************************************************************/
 
-//#include "api.h"
 #include <stdint.h>
 
 
@@ -68,7 +67,6 @@
 
 // Tiny VICKY I/O page 0 addresses
 #define VICKY_BASE_ADDRESS				0xf01000		// Tiny VICKY offset/first register
-#define VICKY_GAMMA_CTRL_REG			0xf01000		// On F256, the gamme control is the 7th bit of the master control reg
 #define VICKY_MASTER_CTRL_REG_L			0xf01000		// Tiny VICKY Master Control Register - low - gamma, sprite, tiles, bitmap, graphics, text modes
 #define VICKY_MASTER_CTRL_REG_H			0xf01001		// Tiny VICKY Master Control Register - high - font 1/2, screen res, etc.
 #define VICKY_LAYER_CTRL_1				0xf01002		// VICKY Bitmap and Tile Map Layer Register 1
@@ -83,6 +81,13 @@
 #define VICKY_BACKGROUND_COLOR_G		0xf0100e		// Tiny VICKY background color Green
 #define VICKY_BACKGROUND_COLOR_R		0xf0100f		// Tiny VICKY background color Red
 #define VICKY_TEXT_CURSOR_ENABLE		0xf01010		// Bit 0=enable cursor; 1-2=rate; 3=flash enable; 4-7 unused
+	#define CURSOR_ONOFF_BITS				0b00000001		//!> bit 0 controls whether cursor is displayed or not
+	#define CURSOR_FLASH_RATE_BITS			0b00000110		//!> bits 1-2 control rate of cursor flashing (if visible)
+	#define CURSOR_FLASH_RATE_1S			0b00000000		//!> bits 1&2 off = 1 blink per second
+	#define CURSOR_FLASH_RATE_12S			0b00000010		//!> bits 1 on = 1 blink per 1/2 second
+	#define CURSOR_FLASH_RATE_14S			0b00000100		//!> bits 2 on = 1 blink per 1/4 second
+	#define CURSOR_FLASH_RATE_15S			0b00000110		//!> bits 1&2 on = 1 blink per 1/5 second
+	#define CURSOR_FLASH_ON_BITS			0b00001000		//!> bit 3 controls whether cursor flashes (1) or remains solid (0)
 #define VICKY_TEXT_CURSOR_CHAR			0xf01012		// 1-byte
 #define VICKY_TEXT_X_POS				0xf01014		// 2-byte
 #define VICKY_TEXT_Y_POS				0xf01016		// 2-byte
@@ -108,15 +113,6 @@
 #define BITMAP_L2_VRAM_ADDR_L			0xf01111		//!> bitmap VRAM address pointer)		
 #define BITMAP_L2_VRAM_ADDR_M			0xf01112		//!> bitmap VRAM address pointer)		
 #define BITMAP_L2_VRAM_ADDR_H			0xf01113		//!> bitmap VRAM address pointer)
-
-#define CURSOR_ONOFF_BITS				0b00000001		//!> bit 0 controls whether cursor is displayed or not
-#define CURSOR_FLASH_RATE_BITS			0b00000110		//!> bits 1-2 control rate of cursor flashing (if visible)
-#define CURSOR_FLASH_RATE_1S			0b00000000		//!> bits 1&2 off = 1 blink per second
-#define CURSOR_FLASH_RATE_12S			0b00000010		//!> bits 1 on = 1 blink per 1/2 second
-#define CURSOR_FLASH_RATE_14S			0b00000100		//!> bits 2 on = 1 blink per 1/4 second
-#define CURSOR_FLASH_RATE_15S			0b00000110		//!> bits 1&2 on = 1 blink per 1/5 second
-#define CURSOR_FLASH_ON_BITS			0b00001000		//!> bit 3 controls whether cursor flashes (1) or remains solid (0)
-
 
 
 
@@ -219,12 +215,36 @@
 #define VICKY_PS2_STATUS_FLAG_K_AK		0b10000000		// when 1, the code sent to the keyboard has been acknowledged
 
 #define RTC_SECONDS						0xf01690		//  654: second digit, 3210: 1st digit
+#define RTC_SECONDS_ALARM				0xf01691		//  654: second digit, 3210: 1st digit
 #define RTC_MINUTES						0xf01692		//  654: second digit, 3210: 1st digit
+#define RTC_MINUTES_ALARM				0xf01693		//  654: second digit, 3210: 1st digit
 #define RTC_HOURS						0xf01694		//   54: second digit, 3210: 1st digit
+#define RTC_HOURS_ALARM					0xf01695		//   54: second digit, 3210: 1st digit
 #define RTC_DAY							0xf01696		//   54: second digit, 3210: 1st digit
+#define RTC_DAY_ALARM					0xf01697		//   54: second digit, 3210: 1st digit
+#define RTC_DAY_OF_WEEK					0xf01698		//  210: day of week digit
 #define RTC_MONTH						0xf01699		//    4: second digit, 3210: 1st digit
 #define RTC_YEAR						0xf0169a		// 7654: second digit, 3210: 1st digit
-#define RTC_CONTROL						0xf0169e		// set bit 3 to disable update of reg, to read secs. 
+#define RTC_RATES						0xf0169b		//  654: WD (watchdog, not really relevant to F256); 3210: RS
+	#define FLAG_RTC_RATE_NONE			0b00000000		// applies to bits 3210 of RTC_RATES
+	#define FLAG_RTC_RATE_31NS			0b00000001		// applies to bits 3210 of RTC_RATES. See manual for values between 0001 and 1101
+	#define FLAG_RTC_RATE_125MS			0b00001101		// applies to bits 3210 of RTC_RATES
+	#define FLAG_RTC_RATE_63MS			0b00001100		// applies to bits 3210 of RTC_RATES - 62.5ms
+	#define FLAG_RTC_RATE_250MS			0b00001110		// applies to bits 3210 of RTC_RATES
+	#define FLAG_RTC_RATE_500MS			0b00001111		// applies to bits 3210 of RTC_RATES 
+#define RTC_ENABLES						0xf0169c		// Controls various interrupt enables, only some of which apply to an F256
+	#define FLAG_RTC_PERIODIC_INT_EN	0b00000100		// set PIE (bit 2) to raise interrupt based on RTC_RATES
+	#define FLAG_RTC_ALARM_INT_EN		0b00001000		// Set AEI (bit 3) to raise interrupt based on RTC_SECONDS_ALARM, etc. 
+#define RTC_FLAGS						0xf0169d		// check to see why an RTC interrupt was raised
+	#define FLAG_RTC_PERIODIC_INT		0b00000100		// will be set if interrupt was raised based on RTC_RATES
+	#define FLAG_RTC_ALARM_INT			0b00001000		// will be set if interrupt was raised based on alarm clock
+#define RTC_CONTROL						0xf0169e		// set UTI (bit 3) to disable update of reg, to read secs. 
+	#define MASK_RTC_CTRL_DSE			0b00000001		// if set (1), daylight savings is in effect.
+	#define MASK_RTC_CTRL_12_24			0b00000010		// sets whether the RTC is using 12 or 24 hour accounting (1 = 24 Hr, 0 = 12 Hr)
+	#define MASK_RTC_CTRL_STOP			0b00000100		// If it is clear (0) before the system is powered down, it will avoid draining the battery and may stop tracking the time. If it is set (1), it will keep using the battery as long as possible.
+	#define MASK_RTC_CTRL_UTI			0b00001000		// if set (1), the update of the externally facing registers by the internal timers is inhibited. In order to read or write those registers, the program must first set UTI and then clear it when done.
+	#define MASK_RTC_CTRL_UNUSED		0b11110000		// the upper 4 bits are not used.
+#define RTC_CENTURY						0xf0169f		// 7654: century 10s digit, 3210: centurys 1s digit
 
 // registers in write-only mode:
 #define SYS0_REG						0xf016a0		// 
@@ -337,6 +357,24 @@
 #define VIA0_PORT_A_DATA_NO_HAND		0xf01c0f		// VIA #1 Port A data (no handshake)
 
 
+// ** WizNet comms related
+
+#define WIZNET_BASE						0xf01d80		// starting point of WizNet-related registers
+#define WIZNET_CTRL						(WIZNET_BASE + 0)	// RW - WizNet Control Register
+#define WIZNET_DATA						(WIZNET_BASE + 1)	// RW - WizNet DATA Register
+#define WIZNET_FIFO_CNT					(WIZNET_BASE + 2)	// RO - WizNet FIFO Rx Count (16bit access)
+#define WIZNET_FIFO_CNT_LO				(WIZNET_BASE + 2)	// RO - WizNet FIFO Rx Count low byte (8bit access)
+#define WIZNET_FIFO_CNT_HI				(WIZNET_BASE + 3)	// RO - WizNet FIFO Rx Count hi byte (8bit access)
+
+
+#define OPT_KBD_BASE					0xf01dc0		// start of 4 byte run related to the optical keyboard on the F256K2
+#define OPT_KBD_DATA					0xf01dc0		// FIFO queue for mechanical keyboard. Each event takes 2 bytes (2 reads)
+#define OPT_KBD_STATUS					0xf01dc1		// read-only, indicates if buffer is empty, and whether the machine has an optical keyboard or not
+	#define FLAG_OPT_KBD_STAT_EMPTY		0b00000001		// if set, keyboard queue is empty (optical keyboard only)
+	#define FLAG_OPT_KBD_STAT_MECH		0b10000000		// if set, keyboard is mechanical, not optical (i.e., an F256K with upgraded mobo)
+#define OPT_KBD_COUNT					0xf01dc2		// number of bytes in the optical keyboard FIFO queue - 2 byte value
+
+
 #define DMA_CTRL						0xf01f00		// VICKY's DMA control register
 	#define FLAG_DMA_CTRL_ENABLE			0b00000001		// enable / disable DMA
 	#define FLAG_DMA_CTRL_2D_OP				0b00000010		// set to enable a 2D operation, clear to do a linear operations
@@ -416,6 +454,9 @@
 
 #define RES_320X200		0
 #define RES_320X240		1
+#define RES_640X480		3		// currently F256K2 and 68K machines only
+#define RES_800X600		4		// currently not supported on F256 platform; 68K only
+#define RES_1024X768	5		// currently not supported on F256 platform; 68K only
 
 // machine model numbers - for decoding s_sys_info.model - value read from MACHINE_ID_REGISTER (see above)
 #define MACHINE_C256FMX			0x00	///< for s_sys_info.model
@@ -445,6 +486,71 @@
 typedef uint8_t	ColorIdx;
 
 
+
+/*****************************************************************************/
+/*                                 Interrupts                                */
+/*****************************************************************************/
+
+// F256 Interrupt-related
+
+// Pending Interrupt (Read and Write Back to Clear)
+#define INT_PENDING_REG0		0xF01660	// 
+#define INT_PENDING_REG1		0xF01661	// 
+#define INT_PENDING_REG2		0xF01662	// IEC Signals Interrupt
+#define INT_PENDING_REG3		0xF01663	// NOT USED
+// Polarity Set
+#define INT_POL_REG0			0xF01664	// 
+#define INT_POL_REG1			0xF01665	// 
+#define INT_POL_REG2			0xF01666	// IEC Signals Interrupt
+#define INT_POL_REG3			0xF01667	// NOT USED
+// Edge Detection Enable
+#define INT_EDGE_REG0			0xF01668	// 
+#define INT_EDGE_REG1			0xF01669	// 
+#define INT_EDGE_REG2			0xF0166A	// IEC Signals Interrupt
+#define INT_EDGE_REG3			0xF0166B	// NOT USED
+// Mask
+#define INT_MASK_REG0			0xF0166C	// 
+#define INT_MASK_REG1			0xF0166D	// 
+#define INT_MASK_REG2			0xF0166E	// IEC Signals Interrupt
+#define INT_MASK_REG3			0xF0166F	// NOT USED
+
+// Interrupt Bit Definition
+// Register Block 0
+#define JR0_INT00_SOF			0x01 	// Start of Frame @ 60FPS or 70hz (depending on the Video Mode)
+#define JR0_INT01_SOL			0x02 	// Start of Line (Programmable)
+#define JR0_INT02_KBD			0x04 	// PS2 Keyboard
+#define JR0_INT03_MOUSE			0x08 	// PS2 Mouse 
+#define JR0_INT04_TMR0			0x10 	// Timer0
+#define JR0_INT05_TMR1			0x20 	// Timer1
+#define JR0_INT06_DMA0			0x40 	// DMA0 
+#define JR0_INT07_CRT			0x80 	// Cartridge
+// Register Block 1
+#define JR1_INT00_UART			0x01 	// UART
+#define JR1_INT01_TVKY2			0x02 	// COLLISION INT2 (VICKY)
+#define JR1_INT02_TVKY3			0x04 	// COLLISION INT3 (VICKY)
+#define JR1_INT03_TVKY4			0x08 	// COLLISION INT4 (VICKY)
+#define JR1_INT04_RTC			0x10 	// Real Time Clock
+#define JR1_INT05_VIA0			0x20 	// VIA0 (Jr & K)
+#define JR1_INT06_VIA1			0x40 	// VIA1 (K Only) - Local Keyboard
+#define JR1_INT07_SDCARD		0x80 	// SDCard Insert Int
+// Register Block 2
+#define JR2_INT00_IEC_DAT		0x01 	// IEC_DATA_i (K2 Only)
+#define JR2_INT01_IEC_CLK		0x02 	// IEC_CLK_i (K2 Only)
+#define JR2_INT02_IEC_ATN		0x04 	// IEC_ATN_i (K2 Only)
+#define JR2_INT03_IEC_SREQ		0x08 	// IEC_SREQ_i (K2 Only)
+#define JR2_INT04_RSVD1			0x10 	// Reserved
+#define JR2_INT05_WIFI			0x20 	// WIFI IRQ (Module Generated)
+#define JR2_INT06_HDMI			0x40 	// HDMI IRQ (From Sii9022) (K2 Only)
+#define JR2_INT07_RSVD4			0x80 	// Reserved
+// Register Block 3
+#define JR2_INT00_WIFI_FIFO_E	0x01 	// WIFI FIFO Empty Interrupt (Triggers when Data in FIFO (after being emptied))
+#define JR2_INT01_MIDI_FIFO_E	0x02 	// MIDI FIFO Empty Interrupt (Triggers when Data in FIFO (after being emptied))
+#define JR2_INT02_KYBD_FIFO_E	0x04 	// Optical Keyboard FIFO Empty Interrupt (Triggers when Data in FIFO (after being emptied)) (K2 Only)
+#define JR2_INT03_RSVD1			0x08 	// Reserved
+#define JR2_INT04_RSVD2			0x10 	// Reserved
+#define JR2_INT05_RSVD3			0x20 	// Reserved
+#define JR2_INT06_RSVD4			0x40 	// Reserved
+#define JR2_INT07_RSVD5			0x80 	// Reserved
 
 
 /*****************************************************************************/

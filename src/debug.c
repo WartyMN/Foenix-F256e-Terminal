@@ -442,7 +442,7 @@ void General_LogCleanUp(void)
 // 	cut_off_pos = MEM_DUMP_BYTES_PER_ROW * 3; // each char represented by 2 hex digits and a space
 // 	y = 0;
 // 	Text_ClearScreen(FILE_CONTENTS_FOREGROUND_COLOR, FILE_CONTENTS_BACKGROUND_COLOR);
-// 	sprintf(global_string_buff1, General_GetString(ID_STR_MSG_HEX_VIEW_INSTRUCTIONS), "Memory Dump");
+// 	sprintf(global_string_buff1, Strings_GetString(ID_STR_MSG_HEX_VIEW_INSTRUCTIONS), "Memory Dump");
 // 	Text_DrawStringAtXY(0, y++, global_string_buff1, FILE_CONTENTS_ACCENT_COLOR, FILE_CONTENTS_BACKGROUND_COLOR);
 // 				
 // 	// loop until all screen rows used

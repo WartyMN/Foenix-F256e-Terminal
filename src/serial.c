@@ -940,6 +940,12 @@ void Serial_PrintByte(uint8_t the_byte)
 		{
 			serial_x = TERM_BODY_X2;
 		}
+		
+// 		// DEBUG - print everything in the in-buffer
+// 		memcpy(global_string_buff1, global_uart_in_buffer, global_uart_read_idx);
+// 		global_string_buff1[global_uart_read_idx+1] = 0;
+// 		Buffer_NewMessage(global_string_buff1);
+// 		// DEBUG
 	}
 	
 	// update cursor position in VICKY so flashing cursor shows where we are

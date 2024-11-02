@@ -406,8 +406,8 @@ void Startup_ShowMachineSplash(void)
 	// show core machine logo ("F256" part without K or J)
 	left_x1 = MACHINE_SPLASH_START_COL_LEFT;
 	left_x2 = MACHINE_SPLASH_END_COL_LEFT;
-	Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-	Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+	Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+	Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 	General_DelayTicks(14000); // we want to show the thinnest version for a longer period of time
 	
 // 	// give user a chance to drop into BASIC immediately
@@ -429,7 +429,7 @@ void Startup_ShowMachineSplash(void)
 			++this_splash_char;
 		}
 
-		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW, left_x2, MACHINE_SPLASH_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 	}
 	
 // 	// give user a chance to drop into BASIC immediately
@@ -450,9 +450,9 @@ void Startup_ShowMachineSplash(void)
 	
 	for (i=0; i < MACHINE_SPLASH_TRAVEL_ROWS; i++)
 	{		
-		Text_CopyMemBoxLinearBuffer(black_line, left_x1, (MACHINE_SPLASH_START_ROW+7)-i, left_x2, (MACHINE_SPLASH_START_ROW+7)-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
-		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+		Text_CopyMemBoxLinearBuffer(black_line, left_x1, (MACHINE_SPLASH_START_ROW+7)-i, left_x2, (MACHINE_SPLASH_START_ROW+7)-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
+		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, left_x1, MACHINE_SPLASH_START_ROW-i, left_x2, MACHINE_SPLASH_BOTTOM_ROW-i, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 		
 		General_DelayTicks(300);
 	}
@@ -468,17 +468,17 @@ void Startup_ShowMachineSplash(void)
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer(black_line, 
 			right_x2+1, 1, 
 			right_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 		
 		--right_x1;
 		--right_x2;
@@ -492,32 +492,32 @@ void Startup_ShowMachineSplash(void)
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_left, 
 			left_x1, 1, 
 			left_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_left, 
 			left_x1, 1, 
 			left_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer(machine_splash_black_line, 
 			left_x2+1, 1, 
 			left_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer(machine_splash_chars_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 			
 		Text_CopyMemBoxLinearBuffer(machine_splash_attrs_right, 
 			right_x1, 1, 
 			right_x2, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		Text_CopyMemBoxLinearBuffer(black_line, 
 			right_x2+1, 1, 
 			right_x2+1, 7, 
-			SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+			PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 		--left_x1;
 		--left_x2;
@@ -557,8 +557,8 @@ void Startup_ShowFoenixLogo(void)
 	
 	// copy in chars and attrs for the logo
 	// logo is 36*45, so draw it at 22, 7
-	Text_CopyMemBoxLinearBuffer(logo_chars, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
-	Text_CopyMemBoxLinearBuffer(logo_attrs, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_ATTR);
+	Text_CopyMemBoxLinearBuffer(logo_chars, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
+	Text_CopyMemBoxLinearBuffer(logo_attrs, LOGO_START_COL, LOGO_START_ROW, LOGO_END_COL, LOGO_BOTTOM_ROW, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_ATTR);
 
 	// show about info
 	Startup_ShowAboutInfo();
@@ -621,16 +621,16 @@ void Startup_ShowAboutInfo(void)
 // 	if (global_started_from_flash == true)
 // 	{
 // 		// show machine information	
-// 		sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_HARDWARE_DETAILS), CH_COPYRIGHT, R8(MACHINE_FPGA_NUM_HI), R8(MACHINE_FPGA_NUM_LOW), R8(MACHINE_FPGA_VER_HI), R8(MACHINE_FPGA_VER_LOW), R8(MACHINE_FPGA_SUBV_HI), R8(MACHINE_FPGA_SUBV_LOW), R8(MACHINE_PCB_MAJOR), R8(MACHINE_PCB_MINOR), R8(MACHINE_PCB_ID_0), R8(MACHINE_PCB_ID_1));
+// 		sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_HARDWARE_DETAILS), CH_COPYRIGHT, R8(MACHINE_FPGA_NUM_HI), R8(MACHINE_FPGA_NUM_LOW), R8(MACHINE_FPGA_VER_HI), R8(MACHINE_FPGA_VER_LOW), R8(MACHINE_FPGA_SUBV_HI), R8(MACHINE_FPGA_SUBV_LOW), R8(MACHINE_PCB_MAJOR), R8(MACHINE_PCB_MINOR), R8(MACHINE_PCB_ID_0), R8(MACHINE_PCB_ID_1));
 // 		Text_DrawStringAtXY(0, INFO_MACHINE_DISPLAY_ROW, global_string_buff1, 15, COLOR_BLACK);
 // 				
 // 		// show SuperBASIC info
-// 		sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_SUPERBASIC), CH_COPYRIGHT);
+// 		sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_SUPERBASIC), CH_COPYRIGHT);
 // 		Text_DrawStringAtXY((80-strlen(global_string_buff1))/2, INFO_SUPERBASIC_DISPLAY_ROW, global_string_buff1, 15, COLOR_BLACK);
 // 	}
 
 	// show app name, version, and credit
-	sprintf(global_string_buff1, General_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
+	sprintf(global_string_buff1, Strings_GetString(ID_STR_ABOUT_FTERM), CH_COPYRIGHT, MAJOR_VERSION, MINOR_VERSION, UPDATE_VERSION);
 	Text_DrawStringAtXY((80-strlen(global_string_buff1))/2, INFO_FMANAGER_DISPLAY_ROW, global_string_buff1, 15, COLOR_BLACK);
 }
 

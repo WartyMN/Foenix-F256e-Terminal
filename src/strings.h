@@ -1,3 +1,47 @@
+//! @file strings.h
+
+/*
+ * strings.h
+ *
+ */
+
+
+
+#ifndef STRINGS_H_
+#define STRINGS_H_
+
+
+/* about this class
+ *
+ *
+ *
+ *** things this class needs to be able to do
+ * return a pointer to a temporary buffer containing the string value matching the ID passed
+ *
+ *** things objects of this class have
+ *
+ *
+ */
+
+
+/*****************************************************************************/
+/*                                Includes                                   */
+/*****************************************************************************/
+
+// project includes
+
+
+// C includes
+#include <stdint.h>
+
+// f256 includes
+
+
+/*****************************************************************************/
+/*                            Macro Definitions                              */
+/*****************************************************************************/
+
+
 // Macro ID definitions for strings
 #define ID_STR_DLG_QUIT_CONFIRM 0
 #define ID_STR_DLG_ARE_YOU_SURE 1
@@ -65,3 +109,32 @@
 #define ID_STR_MACHINE_UNKNOWN 63
 #define NUM_STRINGS 64
 #define TOTAL_STRING_BYTES 1481
+
+
+/*****************************************************************************/
+/*                               Enumerations                                */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/*                                 Structs                                   */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/*                             Global Variables                              */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/*                       Public Function Prototypes                          */
+/*****************************************************************************/
+
+
+
+// return the global string for the passed ID
+// this is just a wrapper around the string, to make it easier to re-use and diff code in different overlays
+char* Strings_GetString(uint8_t the_string_id);
+
+
+#endif /* STRINGS_H_ */

@@ -83,9 +83,6 @@
 /*                          File-scoped Variables                            */
 /*****************************************************************************/
 
-static uint8_t				saved_x;
-static uint8_t				saved_y;
-
 static uint8_t				app_active_panel_id;	// PANEL_ID_LEFT or PANEL_ID_RIGHT
 static uint8_t				app_connected_drive_count;
 
@@ -263,18 +260,18 @@ void App_DrawTitleBar(void)
 	if (global_ui_charset != UI_MODE_ANSI)
 	{
 		// draw the title bar at top. 1x80
-		Text_CopyMemBoxLinearBuffer((uint8_t*)&app_titlebar_glyphs, 0, TITLE_BAR_Y, 79, TITLE_BAR_Y, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+		Text_CopyMemBoxLinearBuffer((uint8_t*)&app_titlebar_glyphs, 0, TITLE_BAR_Y, 79, TITLE_BAR_Y, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 	}
 	else
 	{
 		// draw the title bar at top. 1x80
-		Text_CopyMemBoxLinearBuffer((uint8_t*)&app_titlebar_glyphs_ansi, 0, TITLE_BAR_Y, 79, TITLE_BAR_Y, SCREEN_COPY_TO_SCREEN, SCREEN_FOR_TEXT_CHAR);
+		Text_CopyMemBoxLinearBuffer((uint8_t*)&app_titlebar_glyphs_ansi, 0, TITLE_BAR_Y, 79, TITLE_BAR_Y, PARAM_COPY_TO_SCREEN, PARAM_FOR_TEXT_CHAR);
 	}
 
 	Text_FillBoxAttrOnly(3, TITLE_BAR_Y, 13, TITLE_BAR_Y, COLOR_BRIGHT_WHITE, APP_BACKGROUND_COLOR);
 	
 	// redraw baud display
-	Text_DrawStringAtXY(TERM_BAUD_X1, TITLE_BAR_Y, General_GetString(app_baud_config[app_current_baud_config].lbl_string_id_), ANSI_COLOR_BRIGHT_BLUE, COLOR_BLACK);	
+	Text_DrawStringAtXY(TERM_BAUD_X1, TITLE_BAR_Y, Strings_GetString(app_baud_config[app_current_baud_config].lbl_string_id_), ANSI_COLOR_BRIGHT_BLUE, COLOR_BLACK);	
 
 	// also draw the comms area
 	//Buffer_DrawCommunicationArea();
@@ -414,10 +411,10 @@ void App_Initialize(void)
 	global_dlg.btn_label_[1] = global_dlg_button[1];
 
 	// scan which devices are connected, so we know what panels can access
-	Buffer_NewMessage(General_GetString(ID_STR_MSG_SCANNING));
+	Buffer_NewMessage(Strings_GetString(ID_STR_MSG_SCANNING));
 	app_connected_drive_count = App_ScanDevices();
 
-	sprintf(global_string_buff1, General_GetString(ID_STR_MSG_SHOW_DRIVE_COUNT), app_connected_drive_count);
+	sprintf(global_string_buff1, Strings_GetString(ID_STR_MSG_SHOW_DRIVE_COUNT), app_connected_drive_count);
 	Buffer_NewMessage(global_string_buff1);
 }
 
@@ -455,22 +452,22 @@ void App_MainLoop(void)
 				if (user_input == (uint8_t)ACTION_SELECT_FONT_FNX)
 				{
 					App_ChangeUIFont(FONT_STD);
-					Buffer_NewMessage(General_GetString(ID_STR_MSG_SELECT_FONT_FOENIX));
+					Buffer_NewMessage(Strings_GetString(ID_STR_MSG_SELECT_FONT_FOENIX));
 				}
 				else if (user_input == (uint8_t)ACTION_SELECT_FONT_JA)
 				{
 					App_ChangeUIFont(FONT_STD_KANA);
-					Buffer_NewMessage(General_GetString(ID_STR_MSG_SELECT_FONT_JA));
+					Buffer_NewMessage(Strings_GetString(ID_STR_MSG_SELECT_FONT_JA));
 				}
 				else if (user_input == (uint8_t)ACTION_SELECT_FONT_ANSI)
 				{
 					App_ChangeUIFont(FONT_STD_ANSI);
-					Buffer_NewMessage(General_GetString(ID_STR_MSG_SELECT_FONT_ANSI));
+					Buffer_NewMessage(Strings_GetString(ID_STR_MSG_SELECT_FONT_ANSI));
 				}
 				else if (user_input == (uint8_t)ACTION_SELECT_FONT_IBM)
 				{
 					App_ChangeUIFont(FONT_IBM_ANSI);
-					Buffer_NewMessage(General_GetString(ID_STR_MSG_SELECT_FONT_IBM));
+					Buffer_NewMessage(Strings_GetString(ID_STR_MSG_SELECT_FONT_IBM));
 				}
 				else if (user_input >= ACTION_SET_BAUD_115200 && user_input <= ACTION_SET_BAUD_57600)
 				{
@@ -487,8 +484,8 @@ void App_MainLoop(void)
 // 				}
 				else if (user_input == ACTION_SET_TIME)
 				{
-					General_Strlcpy((char*)&global_dlg_title, General_GetString(ID_STR_DLG_SET_CLOCK_TITLE), COMM_BUFFER_MAX_STRING_LEN);
-					General_Strlcpy((char*)&global_dlg_body_msg, General_GetString(ID_STR_DLG_SET_CLOCK_BODY), APP_DIALOG_WIDTH);
+					General_Strlcpy((char*)&global_dlg_title, Strings_GetString(ID_STR_DLG_SET_CLOCK_TITLE), COMM_BUFFER_MAX_STRING_LEN);
+					General_Strlcpy((char*)&global_dlg_body_msg, Strings_GetString(ID_STR_DLG_SET_CLOCK_BODY), APP_DIALOG_WIDTH);
 					global_string_buff2[0] = 0;	// clear whatever string had been in this buffer before
 					
 					success = Text_DisplayTextEntryDialog(&global_dlg, (char*)&temp_screen_buffer_char, (char*)&temp_screen_buffer_attr, global_string_buff2, 14); //YY-MM-DD HH-MM = 14
@@ -504,11 +501,11 @@ void App_MainLoop(void)
 				{
 					if (Serial_DebugDump() == true)
 					{
-						Buffer_NewMessage(General_GetString(ID_STR_MSG_DEBUG_DUMP));
+						Buffer_NewMessage(Strings_GetString(ID_STR_MSG_DEBUG_DUMP));
 					}
 					else
 					{
-						Buffer_NewMessage(General_GetString(ID_STR_ERROR_GENERIC_DISK));
+						Buffer_NewMessage(Strings_GetString(ID_STR_ERROR_GENERIC_DISK));
 					}
 				}
 // 2024/08/02 MB: did not succeed in getting either of the below approaches to work. the +++ATH thing definitely ruins the call, but modem still says connected.
@@ -552,8 +549,8 @@ void App_ChangeBaudRate(uint8_t new_config_index)
 	Serial_SetBaud(app_baud_config[app_current_baud_config].divisor_);
 
 	App_EnterStealthTextUpdateMode();
-	Buffer_NewMessage(General_GetString(app_baud_config[app_current_baud_config].msg_string_id_));	
-	Text_DrawStringAtXY(TERM_BAUD_X1, TITLE_BAR_Y, General_GetString(app_baud_config[app_current_baud_config].lbl_string_id_), COLOR_BRIGHT_BLUE, COLOR_BLACK);
+	Buffer_NewMessage(Strings_GetString(app_baud_config[app_current_baud_config].msg_string_id_));	
+	Text_DrawStringAtXY(TERM_BAUD_X1, TITLE_BAR_Y, Strings_GetString(app_baud_config[app_current_baud_config].lbl_string_id_), COLOR_BRIGHT_BLUE, COLOR_BLACK);
 	App_ExitStealthTextUpdateMode();
 }
 
@@ -693,7 +690,7 @@ void App_Exit(uint8_t the_error_number)
 {
 	if (the_error_number != ERROR_NO_ERROR)
 	{
-		sprintf(global_string_buff1, General_GetString(ID_STR_MSG_FATAL_ERROR), the_error_number);
+		sprintf(global_string_buff1, Strings_GetString(ID_STR_MSG_FATAL_ERROR), the_error_number);
 		Screen_ShowUserTwoButtonDialog(
 			global_string_buff1, 
 			ID_STR_MSG_FATAL_ERROR_BODY, 

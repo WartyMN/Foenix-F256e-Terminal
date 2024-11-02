@@ -1,7 +1,35 @@
-#include "strings.h"
-#include <stdint.h>
+/*
+ * strings.c
+ *
+ */
 
-char* global_string[NUM_STRINGS]= {
+
+/*****************************************************************************/
+/*                                Includes                                   */
+/*****************************************************************************/
+
+// project includes
+#include "strings.h"
+
+// C includes
+#include <stdint.h>
+#include <string.h>
+
+// F256 includes
+
+
+/*****************************************************************************/
+/*                               Definitions                                 */
+/*****************************************************************************/
+
+
+/*****************************************************************************/
+/*                          File-scoped Variables                            */
+/*****************************************************************************/
+
+static uint8_t			string_merge_buff_192b[192];
+
+static char* strings[NUM_STRINGS]= {
      (char*)"Are you sure you want to exit?",
      (char*)"Are you sure?",
      (char*)"Set Current Date & Time",
@@ -69,7 +97,42 @@ char* global_string[NUM_STRINGS]= {
 };
 
 
+/*****************************************************************************/
+/*                             Global Variables                              */
+/*****************************************************************************/
 
 
 
+/*****************************************************************************/
+/*                       Private Function Prototypes                         */
+/*****************************************************************************/
 
+
+
+/*****************************************************************************/
+/*                       Private Function Definitions                        */
+/*****************************************************************************/
+
+
+
+/*****************************************************************************/
+/*                        Public Function Definitions                        */
+/*****************************************************************************/
+
+// return the global string for the passed ID
+// this is just a wrapper around the string, to make it easier to re-use and diff code in different overlays
+char* Strings_GetString(uint8_t the_string_id)
+{
+	// LOGIC: 
+	//   on 64K memory map machines, I typically store the strings in extended memory
+	//     this routine, for those machines, generally maps in EM, copies the string to a non-EM buffer, and returns the local buffer.
+	//   on non-memory constrained machines, there can still be a case for returning a copy of the string. 
+	//     Lich King for example modifies some strings as displayed, to wrap in a certain display area. 
+	//     slightly slower to copy of course. 
+	//   fastest solution would be to simply not call this routine at all, and access via global_string[the_string_id]), but then 
+	//     every string call will have to be re-written between memory-constrained and non-memory-constrained ports of any given app.
+	
+	strcpy((char*)string_merge_buff_192b, strings[the_string_id]);
+
+	return (char*)string_merge_buff_192b;
+}

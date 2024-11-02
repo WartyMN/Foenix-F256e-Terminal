@@ -66,6 +66,9 @@
 #define PARAM_TEXT_ON			true	// parameter for Sys_SetGraphicMode
 #define PARAM_TEXT_OFF			false	// parameter for Sys_SetGraphicMode
 
+#define PARAM_DOUBLE_SIZE_TEXT	true	// parameter for Sys_SetTextPixelHeight
+#define PARAM_NORMAL_SIZE_TEXT	false	// parameter for Sys_SetTextPixelHeight
+
 
 /*****************************************************************************/
 /*                               Enumerations                                */
@@ -123,17 +126,14 @@ bool Sys_InitSystem(void);
 //! Find out what kind of machine the software is running on, and configure the passed screen accordingly
 //! Configures screen settings, RAM addresses, etc. based on known info about machine types
 //! Configures screen width, height, total text rows and cols, and visible text rows and cols by checking hardware
-//! @param	the_system: valid pointer to system object
 //! @return	Returns false if the machine is known to be incompatible with this software. 
 bool Sys_AutoConfigure(void);
 
 //! Find out what kind of machine the softw`are is running on, and determine # of screens available
-//! @param	the_system: valid pointer to system object
 //! @return	Returns false if the machine is known to be incompatible with this software. 
 bool Sys_AutoDetectMachine(void);
 
 //! Detect the current screen mode/resolution, and set # of columns, rows, H pixels, V pixels, accordingly
-//! @param	the_screen: valid pointer to the target screen to operate on
 //! @return	returns false on any error/invalid input.
 bool Sys_DetectScreenSize(void);
 
@@ -151,15 +151,12 @@ bool Sys_DetectScreenSize(void);
 void Sys_SetTextPixelHeight(bool double_x, bool double_y);
 
 //! Change video mode to the one passed.
-//! @param	the_screen: valid pointer to the target screen to operate on
-//! @param	new_mode: One of the enumerated screen_resolution values. Must correspond to a valid VICKY video mode for the host machine. See VICKY_IIIA_RES_800X600_FLAGS, etc. defined in a2560_platform.h
+//! @param	new_mode - One of the enumerated screen_resolution values. Must correspond to a valid VICKY video mode for the host machine. See VICKY_IIIA_RES_800X600_FLAGS, etc. defined in a2560_platform.h
 //! @return	returns false on any error/invalid input.
 bool Sys_SetVideoMode(uint8_t new_mode);
 
 //! Switch machine into text mode
-//! @param	the_system: valid pointer to system object
-//! @param as_overlay: If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
-//! @return	returns false on any error/invalid input.
+//! @param	as_overlay - If true, sets text overlay mode (text over graphics). If false, sets full text mode (no graphics);
 void Sys_SetModeText(bool as_overlay);
 
 //! Switch machine into graphics mode, text mode, sprite mode, etc.
@@ -168,17 +165,13 @@ void Sys_SetGraphicMode(bool enable_sprites, bool enable_bitmaps, bool enable_ti
 
 
 //! Enable or disable the hardware cursor in text mode, for the specified screen
-//! @param	the_system: valid pointer to system object
-//! @param	the_screen: valid pointer to the target screen to operate on
-//! @param enable_it: If true, turns the hardware blinking cursor on. If false, hides the hardware cursor;
-//! @return	returns false on any error/invalid input.
+//! @param	enable_it - If true, turns the hardware blinking cursor on. If false, hides the hardware cursor;
 void Sys_EnableTextModeCursor(bool enable_it);
 
 //! Set the left/right and top/bottom borders
 //! This will reset the visible text columns as a side effect
-//! @param	border_width: width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
-//! @param	border_height: height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
-//! @return	returns false on any error/invalid input.
+//! @param	border_width - width in pixels of the border on left and right side of the screen. Total border used with be the double of this.
+//! @param	border_height - height in pixels of the border on top and bottom of the screen. Total border used with be the double of this.
 void Sys_SetBorderSize(uint8_t border_width, uint8_t border_height);
 
 

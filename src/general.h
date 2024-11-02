@@ -44,14 +44,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-// cc65 includes
+// F256 includes
+
 
 /*****************************************************************************/
 /*                            Macro Definitions                              */
 /*****************************************************************************/
-
-// replacement for sys jiffies
-#define sys_time_jiffies()	*(uint8_t*)0x8d * 65536 + *(uint8_t*)0x8e * 256 + *(uint8_t*)0x8f
 
 // general
 #define MAX_STRING_COMP_LEN		192		//!< 255 + terminator is max string size for compares
@@ -106,7 +104,7 @@ typedef struct Rectangle
 //! Round a float to the nearest integer value
 //! THINK C's and SAS/C's math.h don't include round()
 //! from: https://stackoverflow.com/questions/4572556/concise-way-to-implement-round-in-c
-//! @param	the_float: a double value to round up/down
+//! @param	the_float - a double value to round up/down
 //! @return	Returns an int with the rounded value
 int32_t General_Round(double the_float);
 
@@ -126,14 +124,10 @@ int32_t General_Round(double the_float);
 
 // **** MISC STRING UTILITIES *****
 
-// return the global string for the passed ID
-// this is just a wrapper around the string, to make it easier to re-use and diff code in different overlays
-char* General_GetString(uint8_t the_string_id);
-
 // //! Convert a string, in place, to lower case
 // //! This overwrites the string with a lower case version of itself.
 // //! Warning: no length check is in place. Calling function must verify string is well-formed (terminated).
-// //! @param	the_string: the string to convert to lower case.
+// //! @param	the_string - the string to convert to lower case.
 // //! @return	Returns true if the string was modified by the process.
 // bool General_StrToLower(char* the_string);
 
@@ -145,43 +139,43 @@ char General_ToLower(char the_char);
 
 //! Allocates memory for a new string and copies up to max_len - 1 characters from the NUL-terminated string src to the new string, NUL-terminating the result
 //! This is meant to be a one stop shop for getting a copy of a string
-//! @param	src: The string to copy
-//! @param	max_len: The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of the source string + 1, the resulting copy string will be capped at max_len - 1.
+//! @param	src - The string to copy
+//! @param	max_len - The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of the source string + 1, the resulting copy string will be capped at max_len - 1.
 //! @return	a copy of the source string to max_len, or NULL on any error condition
-char* General_StrlcpyWithAlloc(const char* src, signed long max_len);
+char* General_StrlcpyWithAlloc(const char* src, size_t max_len);
 
 //! Copies up to max_len - 1 characters from the NUL-terminated string src to dst, NUL-terminating the result
-//! @param	src: The string to copy
-//! @param	dst: The string to copy into. Calling function is responsible for ensuring this string is allocated, and has at least as much storage as max_len.
-//! @param	max_len: The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of the source string + 1, the resulting copy string will be capped at max_len - 1.
+//! @param	src - The string to copy
+//! @param	dst - The string to copy into. Calling function is responsible for ensuring this string is allocated, and has at least as much storage as max_len.
+//! @param	max_len - The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of the source string + 1, the resulting copy string will be capped at max_len - 1.
 //! @return	Returns the length of the source string, or -1 on any error condition
-signed long General_Strlcpy(char* dst, const char* src, signed long max_len);
+int16_t General_Strlcpy(char* dst, const char* src, size_t max_len);
 
 //! Copies up to max_len - 1 characters from the NUL-terminated string src and appends to the end of dst, NUL-terminating the result
-//! @param	src: The string to copy
-//! @param	dst: The string to append to. Calling function is responsible for ensuring this string is allocated, and has at least as much storage as max_len.
-//! @param	max_len: The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of src + length of dst + 1, the resulting copy string will be capped at max_len - 1.
+//! @param	src - The string to copy
+//! @param	dst - The string to append to. Calling function is responsible for ensuring this string is allocated, and has at least as much storage as max_len.
+//! @param	max_len - The maximum number of bytes to use in the destination string, including the terminator. If this is shorter than the length of src + length of dst + 1, the resulting copy string will be capped at max_len - 1.
 //! @return	Returns the length of the attempted concatenated string: initial length of dst plus the length of src.
-signed long General_Strlcat(char* dst, const char* src, signed long max_len);
+int16_t General_Strlcat(char* dst, const char* src, size_t max_len);
 
 //! Makes a case sensitive comparison of the specified number of characters of the two passed strings
 //! Stops processing once max_len has been reached, or when one of the two strings has run out of characters.
 //! http://home.snafu.de/kdschem/c.dir/strings.dir/strncmp.c
 //! TODO: compare this to other implementations, see which is faster. eg, https://opensource.apple.com/source/Libc/Libc-167/gen.subproj/i386.subproj/strncmp.c.auto.html
-//! @param	string_1: the first string to compare.
-//! @param	string_2: the second string to compare.
-//! @param	max_len: the maximum number of characters to compare. Even if both strings are larger than this number, only this many characters will be compared.
+//! @param	string_1 - the first string to compare.
+//! @param	string_2 - the second string to compare.
+//! @param	max_len - the maximum number of characters to compare. Even if both strings are larger than this number, only this many characters will be compared.
 //! @return	Returns 0 if the strings are equivalent (at least up to max_len). Returns a negative or positive if the strings are different.
-int16_t General_Strncmp(const char* string_1, const char* string_2, size_t length);
+int16_t General_Strncmp(const char* string_1, const char* string_2, size_t max_len);
 
 //! Makes a case insensitive comparison of the specified number of characters of the two passed strings
 //! Stops processing once max_len has been reached, or when one of the two strings has run out of characters.
 //! Inspired by code from slashdot and apple open source
 //! https://stackoverflow.com/questions/5820810/case-insensitive-string-comparison-in-c
 //! https://opensource.apple.com/source/tcl/tcl-10/tcl/compat/strncasecmp.c.auto.html
-//! @param	string_1: the first string to compare.
-//! @param	string_2: the second string to compare.
-//! @param	max_len: the maximum number of characters to compare. Even if both strings are larger than this number, only this many characters will be compared.
+//! @param	string_1 - the first string to compare.
+//! @param	string_2 - the second string to compare.
+//! @param	max_len - the maximum number of characters to compare. Even if both strings are larger than this number, only this many characters will be compared.
 //! @return	Returns 0 if the strings are equivalent (at least up to max_len). Returns a negative or positive if the strings are different.
 int16_t General_Strncasecmp(const char* string_1, const char* string_2, size_t max_len);
 
@@ -189,7 +183,7 @@ int16_t General_Strncasecmp(const char* string_1, const char* string_2, size_t m
 //! Safe(r) strlen function: will stop processing if no terminator found before max_len reached
 // Inspired by apple/bsd strnlen.
 //! @return	Returns strlen(the_string), if that is less than max_len, or max_len if there is no null terminating ('\0') among the first max_len characters pointed to by the_string.
-signed long General_Strnlen(const char *the_string, size_t max_len);
+int16_t General_Strnlen(const char *the_string, size_t max_len);
 
 
 // **** RECTANGLE UTILITIES *****
@@ -213,30 +207,26 @@ signed long General_Strnlen(const char *the_string, size_t max_len);
 // populates the passed string by safely combining the passed file path and name, accounting for cases where path is a disk root
 void General_CreateFilePathFromFolderAndFile(char* the_combined_path, char* the_folder_path, char* the_file_name);
 
-// // return the first char of the last part of a file path
-// // if no path part detected, returns the original string
-// // not guaranteed that this is a FILENAME, as if you passed a path to a dir, it would return the DIR name
-// // amigaDOS compatibility function (see FilePart)
-// char* General_NamePart(const char* the_file_path);
+// return the first char of the last part of a file path
+// if no path part detected, returns the original string
+// not guaranteed that this is a FILENAME, as if you passed a path to a dir, it would return the DIR name
+// amigaDOS compatibility function (see FilePart)
+char* General_NamePart(const char* the_file_path);
 
 // return everything to the left of the filename in a path. 
 char* General_PathPart(const char* the_file_path);
 
 //! Extract file extension into the passed char pointer, as new lowercased string pointer, if any found.
-//! @param	the_file_name: the file name to extract an extension from
-//! @param	the_extension: a pre-allocated buffer that will contain the extension, if any is detected. Must be large enough to hold the extension! No bounds checking is done. 
+//! @param	the_file_name - the file name to extract an extension from
+//! @param	the_extension - a pre-allocated buffer that will contain the extension, if any is detected. Must be large enough to hold the extension! No bounds checking is done. 
 //! @return	Returns false if no file extension found.
 bool General_ExtractFileExtensionFromFilename(const char* the_file_name, char* the_extension);
 
 //! Extract core part of the file name, not including the extension
-//! @param	the_file_name: the file name to extract an extension from
-//! @param	the_core_part: a pre-allocated buffer that will contain the pre-extension part of the file name, if any is detected. Must be large enough to hold the entire file name! No bounds checking is done. If no extension is found, this will contain an empty string.
+//! @param	the_file_name - the file name to extract an extension from
+//! @param	the_core_part - a pre-allocated buffer that will contain the pre-extension part of the file name, if any is detected. Must be large enough to hold the entire file name! No bounds checking is done. If no extension is found, this will contain an empty string.
 //! @return	Returns false if no file extension found (because what is "core" part without an extension)
 bool General_ExtractCoreFilename(const char* the_file_name, char* the_core_part);
-
-// return a human-readable(ish) string for the filetype of the filetype ID passed - no allocation
-// see cbm_filetype.h
-char* General_GetFileTypeString(uint8_t cbm_filetype_id);
 
 
 
